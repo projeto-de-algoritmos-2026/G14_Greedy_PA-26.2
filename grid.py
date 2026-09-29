@@ -10,6 +10,10 @@ POKEMON = 2
 POKEBOLA = 3
 CPU = 4
 SURF = 5
+# CENTRO entrou no trabalho 2: e onde a energia recarrega. Diferente dos
+# outros conteudos, nao some quando pisado (e um predio, nao um item), entao
+# o mesmo centro serve pra varias paradas.
+CENTRO = 6
 VISITADO = -1
 
 EMOJI = {
@@ -19,6 +23,7 @@ EMOJI = {
     POKEBOLA: "\U000026D4",
     CPU: "\U0001F94A",
     SURF: "\U0001F3C4",
+    CENTRO: "\U0001F3E5",
     VISITADO: "\U00002705",
 }
 
@@ -31,6 +36,10 @@ GRAMA = 'grass'
 AGUA = 'water'
 CONCRETO = 'concrete'
 TERRENOS = [GRAMA, AGUA, CONCRETO]
+
+# Fracao das celulas que vira Centro Pokemon. Com 8x8 da 2 ou 3 centros, com
+# 30x30 da 36. O trabalho 2 calibra isso junto com o alcance da energia.
+DENSIDADE_CENTRO = 0.04
 
 
 class GridSquare:
@@ -69,7 +78,7 @@ class GridSquare:
 
 
 class Grid:
-    def __init__(self, size=8, seed=None):
+    def __init__(self, size=8, seed=None, centros=None):
         """size e seed sao o que torna o benchmark da fase 6 reproduzivel.
 
         O RNG e proprio do Grid: dois mapas com a mesma seed sao iguais mesmo
@@ -87,6 +96,45 @@ class Grid:
         self.grid[0][0].terrain = CONCRETO
         self.row_pos, self.col_pos = 0, 0
         self._tirar_surf_da_agua()
+        self._espalhar_centros(centros)
+
+    def _espalhar_centros(self, quantidade=None):
+        """Transforma celulas LIVRE em CENTRO depois que o mapa ja existe.
+
+        O sorteio acontece DEPOIS de todas as celulas, com o mesmo RNG. Por
+        isso o mapa de uma seed continua identico ao do trabalho 1 em tudo que
+        nao e centro: o benchmark antigo segue reproduzivel e a comparacao
+        entre os dois trabalhos usa os mesmos mapas.
+
+        So entra celula LIVRE, fora da origem e fora da agua. LIVRE porque um
+        centro em cima de pokemon ou CPU somaria batalha a parada; fora da agua
+        pra que centro nao seja premio exclusivo de quem tem surf, o mesmo
+        cuidado que _tirar_surf_da_agua tem com o item de surf. Com isso o custo
+        de entrar num centro e so o do terreno, igual ao de uma celula livre, e
+        as rotas do trabalho 1 nao mudam.
+        """
+        candidatas = [
+            (r, c)
+            for r, linha in enumerate(self.grid)
+            for c, celula in enumerate(linha)
+            if (r, c) != (0, 0)
+            and celula.occupied_with == LIVRE
+            and celula.terrain != AGUA
+        ]
+        if quantidade is None:
+            quantidade = max(1, round(self.size * self.size * DENSIDADE_CENTRO))
+        quantidade = min(quantidade, len(candidatas))
+        for r, c in self.rng.sample(candidatas, quantidade):
+            self.grid[r][c].occupied_with = CENTRO
+
+    def centros(self):
+        """Posicoes de todos os centros, em ordem de linha."""
+        return [
+            (r, c)
+            for r, linha in enumerate(self.grid)
+            for c, celula in enumerate(linha)
+            if celula.occupied_with == CENTRO
+        ]
 
     def _tirar_surf_da_agua(self):
         """O item de Surf nao nasce em celula de agua.

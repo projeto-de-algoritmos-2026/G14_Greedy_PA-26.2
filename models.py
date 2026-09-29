@@ -40,6 +40,21 @@ class Player:
     # Player e nao entrada da bag. Ligar surf nao muda o peso da agua: cria as
     # arestas de agua, que sem ele nao existem. Ver graph/adapter.py.
     surf: bool = False
+    # Energia entrou no trabalho 2 e e o combustivel do caminhoneiro. None
+    # desliga a regra: o jogo, o bot e o benchmark do trabalho 1 continuam
+    # iguais. Energia NAO e HP. O HP cai em batalha aleatoria e ja muda o custo
+    # da grama; como combustivel ele tornaria o consumo de um trecho
+    # desconhecido antes de sair, e o guloso so e otimo quando esse consumo e
+    # conhecido. Cada passo gasta custo_entrada() da celula de destino, o
+    # mesmo peso do grafo do trabalho 1.
+    energia: int | None = None
+    energia_max: int | None = None
+    # Tentou dar um passo sem energia pra pagar. Encerra a partida.
+    desmaiado: bool = False
+
+    @property
+    def usa_energia(self):
+        return self.energia is not None
 
     def poke_list_names(self):
         names = []

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano de implementação: Caminhoneiro no Pokémon CLI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0C0F14;
+    --surface:#141922;
+    --border:#2A3340;
+    --text:#F4F6F9;
+    --muted:#8A97A8;
+    --jade:#12B7A3;
+    --jade-deep:#0B8577;
+    --display:'Plus Jakarta Sans',system-ui,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--ink);color:var(--text);
+    font-family:var(--body);font-size:16px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:40px 22px 96px}
+
+  .label{
+    font-family:var(--body);font-size:11px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  }
+
+  header{border-bottom:1px solid var(--border);padding-bottom:34px;margin-bottom:40px}
+  h1{
+    font-family:var(--display);font-weight:800;letter-spacing:-.03em;
+    font-size:clamp(30px,7vw,46px);line-height:1.08;margin:14px 0 14px;
+  }
+  header p{color:var(--muted);max-width:60ch;margin:0}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:22px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .meta b{color:var(--text);font-weight:500}
+
+  h2{
+    font-family:var(--display);font-weight:700;letter-spacing:-.02em;
+    font-size:23px;margin:0 0 8px;
+  }
+  section{margin-bottom:56px}
+  .lede{color:var(--muted);max-width:62ch;margin:0 0 24px}
+
+  /* hero */
+  .board{
+    background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    padding:22px;display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:center;
+  }
+  @media(min-width:720px){ .board{grid-template-columns:minmax(0,320px) minmax(0,1fr)} }
+  .board svg{width:100%;height:auto;display:block}
+  .runs{display:flex;flex-direction:column;gap:2px}
+  .run{display:grid;grid-template-columns:14px 1fr auto auto;gap:12px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--border)}
+  .run:last-child{border-bottom:0}
+  .swatch{width:14px;height:3px;border-radius:2px;align-self:center}
+  .run-name{font-family:var(--display);font-weight:700;font-size:15px}
+  .run-num{font-family:var(--mono);font-size:13px;color:var(--muted);white-space:nowrap}
+  .run-num b{color:var(--text);font-weight:500}
+  .run.win .run-num b{color:var(--jade)}
+  .thesis{margin:20px 0 0;padding-top:18px;border-top:1px solid var(--border);color:var(--muted);max-width:64ch}
+  .thesis b{color:var(--text);font-weight:600}
+
+  /* fases */
+  .phases{position:relative;padding-left:30px}
+  .phases::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:1px;background:var(--border)}
+  .phase{position:relative;padding-bottom:34px}
+  .phase::before{
+    content:"";position:absolute;left:-30px;top:7px;width:11px;height:11px;border-radius:50%;
+    background:var(--ink);border:2px solid var(--border);
+  }
+  .phase.key::before{background:var(--jade);border-color:var(--jade)}
+  .phase-head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:2px}
+  .phase h3{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.015em;margin:0}
+  .step{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .who{
+    font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+    border:1px solid var(--border);border-radius:4px;padding:2px 7px;color:var(--muted);
+  }
+  .blocks{background:var(--jade);color:var(--ink);border-color:var(--jade);font-weight:700}
+  .phase ul{margin:10px 0 0;padding-left:18px;color:var(--muted)}
+  .phase li{margin-bottom:6px}
+  .phase li b{color:var(--text);font-weight:500}
+  code{font-family:var(--mono);font-size:.88em;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+
+  /* tabelas */
+  table{width:100%;border-collapse:collapse;font-size:14.5px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  td:first-child{font-weight:500;white-space:nowrap}
+  .num{font-family:var(--mono);color:var(--jade);white-space:nowrap}
+  td small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+
+  .traps{list-style:none;padding:0;margin:0}
+  .traps li{border-left:2px solid var(--jade-deep);padding:2px 0 2px 16px;margin-bottom:18px;color:var(--muted);max-width:64ch}
+  .traps b{display:block;color:var(--text);font-family:var(--display);font-weight:700;font-size:15.5px;margin-bottom:2px}
+
+  footer{border-top:1px solid var(--border);padding-top:20px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  footer span{font-family:var(--mono)}
+
+  @media print{
+    body{background:#fff;color:#000}
+    .board,code{background:#fff}
+    a{color:#000}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="label">Projeto de Algoritmos | UnB/FGA | Módulo 2, Algoritmos Ambiciosos</div>
+  <h1>Caminhoneiro no Pokémon CLI</h1>
+  <p>Continuação do Trabalho 1. O Dijkstra já entrega a rota mais barata; agora o treinador tem energia limitada e o mapa ganha Centros Pokémon. O algoritmo do caminhoneiro decide em quais centros parar para chegar ao destino com o mínimo de paradas.</p>
+  <div class="meta">
+    <span>Base: <b>G14_Grafos_PA-26.2</b> (commit 761dd20)</span>
+    <span>Python | ~1.100 linhas | 160 testes</span>
+    <span>Dupla: <b>Lucas</b> e <b>Augusto</b> (a confirmar)</span>
+    <span>Prova 2: <b>02/10</b> | Entrega: <b>05/10</b></span>
+  </div>
+</header>
+
+<section>
+  <h2>A tese do trabalho</h2>
+  <p class="lede">Duas otimizações empilhadas. O Dijkstra minimiza a energia total da rota; o guloso minimiza o número de paradas sobre essa rota. Uma não substitui a outra.</p>
+
+  <div class="board">
+    <svg viewBox="0 0 312 150" role="img" aria-label="Rota de custo 50 com seis Centros Pokémon e alcance de 20: o guloso para em 15 e 30">
+      <!-- rota: custo 0 a 50 mapeado em x 16 a 296 (5,6 px por unidade) -->
+      <line x1="16" y1="60" x2="296" y2="60" stroke="#2A3340" stroke-width="6" stroke-linecap="round"/>
+      <!-- centros: 8, 15, 22, 30, 38, 45 -->
+      <g fill="#8A97A8">
+        <rect x="58.8" y="52" width="4" height="16"/>
+        <rect x="137.2" y="52" width="4" height="16"/>
+        <rect x="226.8" y="52" width="4" height="16"/>
+        <rect x="266" y="52" width="4" height="16"/>
+      </g>
+      <!-- paradas do guloso: 15 e 30 -->
+      <g fill="#12B7A3">
+        <rect x="96" y="48" width="8" height="24" rx="2"/>
+        <rect x="180" y="48" width="8" height="24" rx="2"/>
+      </g>
+      <!-- trechos de alcance do guloso -->
+      <g stroke="#12B7A3" stroke-width="2" fill="none">
+        <path d="M16 96h112"/><path d="M100 108h112"/><path d="M184 120h112"/>
+      </g>
+      <g font-family="IBM Plex Mono, monospace" font-size="10" fill="#8A97A8">
+        <text x="16" y="40">origem</text>
+        <text x="258" y="40">destino</text>
+        <text x="16" y="140">alcance 20 | centros em 8, 15, 22, 30, 38, 45</text>
+      </g>
+      <circle cx="16" cy="60" r="5.5" fill="#F4F6F9"/>
+      <rect x="290" y="54" width="12" height="12" rx="2" fill="#12B7A3"/>
+    </svg>
+
+    <div>
+      <div class="runs">
+        <div class="run">
+          <span class="swatch" style="background:#8A97A8"></span>
+          <span class="run-name">Todo centro</span>
+          <span class="run-num"><b>6</b> paradas</span>
+          <span class="run-num">chega</span>
+        </div>
+        <div class="run">
+          <span class="swatch" style="background:#F4F6F9"></span>
+          <span class="run-name">Limiar 25%</span>
+          <span class="run-num"><b>3</b> paradas</span>
+          <span class="run-num">chega</span>
+        </div>
+        <div class="run">
+          <span class="swatch" style="background:#2A3340"></span>
+          <span class="run-name">Limiar 10%</span>
+          <span class="run-num"><b>0</b> paradas</span>
+          <span class="run-num">desmaia no 20</span>
+        </div>
+        <div class="run win">
+          <span class="swatch" style="background:#12B7A3"></span>
+          <span class="run-name">Guloso</span>
+          <span class="run-num"><b>2</b> paradas</span>
+          <span class="run-num">chega</span>
+        </div>
+      </div>
+      <p class="thesis">Exemplo montado à mão, não é resultado medido. O guloso anda até o centro mais distante que ainda alcança e só então para. A regra que o jogador humano usaria ("paro quando a energia fica baixa") ou para demais ou desmaia. <b>Parar tarde não é parar pouco</b>, e é isso que o benchmark precisa mostrar em escala.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Fases</h2>
+  <p class="lede">Sete fases depois da preparação do repositório. A fase 1 bloqueia todas as outras: sem o modelo de energia não existe o que o guloso otimizar. As fases 2 e 3 são o conteúdo da prova, então fechar elas primeiro vale como estudo.</p>
+
+  <div class="phases">
+
+    <div class="phase">
+      <div class="phase-head"><span class="step">Fase 0</span><h3>Preparar o repositório</h3></div>
+      <ul>
+        <li>Repo novo na org com o padrão <code>G14_Greed_&lt;NomeDoProjeto&gt;</code>, partindo do <code>master</code> do T1.</li>
+        <li><b>Decisão pendente:</b> levar o histórico do T1 (mostra a continuidade) ou começar com um commit único do código (deixa o diff do T2 limpo pra correção).</li>
+        <li>README novo com cabeçalho do módulo Greed e a tabela da dupla. Link na planilha já no primeiro dia, não no último: no T1 esse foi o item de maior risco de prazo.</li>
+        <li>Suíte do T1 (160 testes) verde antes de qualquer mudança.</li>
+      </ul>
+    </div>
+
+    <div class="phase key">
+      <div class="phase-head"><span class="step">Fase 1</span><h3>Modelar energia e Centro Pokémon</h3><span class="who blocks">Bloqueia tudo</span></div>
+      <ul>
+        <li><b>Energia é atributo novo do <code>Player</code></b>, separado do HP. O HP muda com batalha aleatória e já entra no custo da grama; usar ele como combustível tornaria o problema não determinístico e circular.</li>
+        <li>Entrar numa célula gasta <code>custo_entrada(celula, estado)</code> de energia, o mesmo peso do T1. Assim a distância entre centros não é uniforme e a rota do Dijkstra é literalmente a de menor consumo.</li>
+        <li>Célula nova <code>CENTRO</code> no grid, sorteada pela seed, no mesmo molde do <code>SURF</code> da fase 2 do T1. Entrar nela não recarrega sozinho: recarregar é decisão da estratégia.</li>
+        <li><code>Estado</code> ganha <code>energia</code> e <code>energia_max</code>. Energia zero no meio da rota é desmaio: a partida registra a falha em vez de seguir.</li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <div class="phase-head"><span class="step">Fase 2</span><h3>O algoritmo do caminhoneiro</h3></div>
+      <ul>
+        <li><code>greedy/caminhoneiro.py</code>, função pura: <code>paradas(marcos, alcance) -&gt; paradas | None</code>. <code>marcos</code> é a lista de (custo acumulado, é centro?) ao longo da rota; <code>None</code> quando algum trecho entre centros consecutivos passa do alcance.</li>
+        <li>Regra: da posição atual, ir até o centro mais distante que ainda está dentro do alcance e parar lá. Linear no tamanho da rota, porque os marcos já vêm ordenados pela própria rota.</li>
+        <li>Separar a rota em marcos é função própria (<code>marcos_da_rota(caminho, mapa, estado)</code>), pra testar o guloso sem mapa.</li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <div class="phase-head"><span class="step">Fase 3</span><h3>Testes e prova de otimalidade</h3></div>
+      <ul>
+        <li>O exemplo do slide da aula montado à mão, com resultado conhecido.</li>
+        <li>Casos de borda: destino dentro do alcance (zero paradas), centro exatamente no limite do alcance, trecho impossível, centro na origem.</li>
+        <li><b>Força bruta sobre todos os subconjuntos de centros</b> em rotas pequenas (até ~15 centros), comparando o mínimo com o guloso em centenas de rotas sorteadas. É o teste que sustenta a apresentação: mostra na prática o argumento de que o guloso "fica sempre à frente".</li>
+        <li>O relatório escreve a prova por troca (<i>greedy stays ahead</i>), que é a forma que a prova cobra.</li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <div class="phase-head"><span class="step">Fase 4</span><h3>Estratégias rivais e bot</h3></div>
+      <ul>
+        <li>Quatro estratégias com a mesma assinatura: <b>guloso</b>, <b>para em todo centro</b>, <b>limiar</b> (para quando a energia cai abaixo de X%, com X de 10, 25 e 50) e <b>ótimo por força bruta</b> (referência, só nos tamanhos pequenos).</li>
+        <li>O loop do bot do T1 ganha um passo: planeja a rota com Dijkstra, calcula as paradas, executa, recarrega nos centros escolhidos, replaneja.</li>
+        <li>Recarga passa por <code>game.mover()</code> e uma ação nova no jogo, igual ao humano. Mantém a garantia do T1 de uma só definição de regra.</li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <div class="phase-head"><span class="step">Fase 5</span><h3>Benchmark</h3></div>
+      <ul>
+        <li>Métricas: paradas, desmaios, energia desperdiçada (quanto ainda tinha no tanque ao recarregar), energia total gasta.</li>
+        <li>Grade herdada do T1: tamanhos 8, 15 e 30 | 30 seeds | alcance em 3 níveis. CSV separado por experimento e SVG escrito à mão, como no T1.</li>
+        <li><b>Cruzar com os algoritmos do T1:</b> rodar o guloso sobre a rota do DFS, do BFS e do Dijkstra. A rota mais barata tende a precisar de menos paradas, mas não sempre, e esse é o ponto que liga os dois trabalhos.</li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <div class="phase-head"><span class="step">Fase 6</span><h3>Interface</h3></div>
+      <ul>
+        <li>O <code>webdemo</code> do T1 ganha a barra de energia, os centros no mapa e as paradas marcadas na rota.</li>
+        <li>Tela comparativa: mesma rota, as quatro estratégias lado a lado, no formato do quadro da tese acima.</li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <div class="phase-head"><span class="step">Fase 7</span><h3>Entrega</h3></div>
+      <ul>
+        <li>README com instruções de execução e a tabela de resultados.</li>
+        <li>Relatório com a modelagem: por que energia e não HP, por que o custo do T1 vira consumo, a prova de otimalidade e o que o guloso não resolve (escolher a rota).</li>
+        <li>Vídeo de até ~5 min linkado no README e link conferido na planilha.</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Decisões pendentes</h2>
+  <p class="lede">Estruturais, ficam com o Lucas antes de virar código. A recomendação vai junto.</p>
+  <table>
+    <thead><tr><th>Decisão</th><th>Opções</th><th>Recomendação</th></tr></thead>
+    <tbody>
+      <tr><td>O que é o combustível</td><td>Energia nova gasta pelo custo do T1 | energia de 1 por passo | o próprio HP</td><td>Energia pelo custo do T1: determinística e reaproveita o peso que já existe.</td></tr>
+      <tr><td>Centro fora da rota</td><td>Só conta centro que está no caminho | permite desvio até centro próximo</td><td>Só no caminho. Desvio transforma o problema em outro, que o guloso não garante.</td></tr>
+      <tr><td>Rota sem solução</td><td>Garantir na geração que sempre existe | deixar acontecer e registrar</td><td>Registrar, como a origem ilhada do T1 em <code>rotas_descartes.csv</code>.</td></tr>
+      <tr><td>Histórico do repo</td><td>Levar o do T1 | commit único</td><td>Levar: a continuidade é o argumento do trabalho.</td></tr>
+      <tr><td>Divisão com o Augusto</td><td>Fases 1, 2 e 3 de um lado | 4, 5 e 6 do outro</td><td>Quem faz a fase 2 faz a 3: o teste de força bruta é quem valida o próprio guloso.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Onde a dupla vai perder tempo</h2>
+  <ul class="traps">
+    <li><b>Usar HP como combustível</b>O HP cai em batalha aleatória e já muda o custo da grama. O guloso só é ótimo quando o consumo de cada trecho é conhecido antes de sair.</li>
+    <li><b>Escolher rota e paradas ao mesmo tempo</b>Minimizar paradas escolhendo também o caminho é outro problema (busca em posição x energia) e não é guloso. A rota vem do Dijkstra; o guloso trabalha sobre ela.</li>
+    <li><b>Mapa pequeno demais para os centros</b>Em 8x8 a rota inteira cabe no alcance e o guloso sempre dá zero paradas. O alcance tem que ser parâmetro desde a fase 1, calibrado por tamanho.</li>
+    <li><b>Deixar a planilha para o último dia</b>No T1 o link não estava na planilha na véspera. Registrar no dia em que o repo nasce.</li>
+    <li><b>Programar em vez de estudar</b>As fases 2 e 3 são estudo pra prova. Interface e benchmark ficam pra depois.</li>
+  </ul>
+</section>
+
+<footer>
+  <span>LA Soluções de Software</span>
+  <span>Plano de implementação | Trabalho 2 | v1</span>
+</footer>
+
+</div>
+</body>
+</html>

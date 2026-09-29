@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from rich import print
 
 import grid as grid_mod
+from graph.cost import custo_entrada
+from graph.state import Estado
 from models import CpuPlayer, Player, Pokemon, generate_rand_pokemon
 
 # Condicao de fim da partida. Estava solta como literal dentro do laco do bot,
@@ -48,6 +50,10 @@ class Movimento:
     pegou_pokebola: bool = False
     pegou_surf: bool = False
     hp_perdido: int = 0
+    # Trabalho 2. Ficam zerados quando a partida nao usa energia.
+    energia_gasta: int = 0
+    desmaiou: bool = False
+    em_centro: bool = False
 
 
 def partida_encerrada(player: Player) -> str:
@@ -56,6 +62,8 @@ def partida_encerrada(player: Player) -> str:
     Devolve o motivo em vez de um booleano porque quem para precisa dizer por
     que parou: o resultado do bot e a tela do modo humano mostram esse texto.
     """
+    if player.desmaiado:
+        return "sem energia"
     if not player.pokemon_list:
         return "sem pokemon"
     if len(player.pokemon_list) >= POKEMON_PARA_VENCER:
@@ -84,6 +92,21 @@ def mover(grid, player: Player, direcao: str, automatico: bool = False) -> Movim
     if not destino.pisavel(player.surf):
         return Movimento(False, grid.posicao, motivo="agua sem surf")
 
+    # Energia (trabalho 2). O gasto e calculado ANTES do passo e com o estado
+    # de antes: e o mesmo numero que o Dijkstra usou como peso da aresta ao
+    # planejar, inclusive a penalidade de batalha. Se a conta do jogo e a do
+    # grafo divergissem, o caminhoneiro calcularia paradas pra uma energia que
+    # o jogo nao cobra.
+    gasto = 0
+    if player.usa_energia:
+        gasto = custo_entrada(destino, Estado.de(player))
+        if gasto > player.energia:
+            # Nao anda com o tanque vazio: desmaia onde esta. O passo nao
+            # acontece, e a partida registra a falha em vez de seguir.
+            player.desmaiado = True
+            return Movimento(False, grid.posicao, motivo="sem energia", desmaiou=True)
+        player.energia -= gasto
+
     hp_antes = player.lider.health if player.lider else 0
     batalhou = False
     pegou_pokebola = False
@@ -108,7 +131,11 @@ def mover(grid, player: Player, direcao: str, automatico: bool = False) -> Movim
             battle(player, 'wild pokemon')
         batalhou = True
 
-    destino.occupied_with = grid_mod.VISITADO
+    # Centro e predio: continua no mapa depois de pisado, pra servir de
+    # parada de novo. Todo o resto vira VISITADO como no trabalho 1.
+    em_centro = destino.occupied_with == grid_mod.CENTRO
+    if not em_centro:
+        destino.occupied_with = grid_mod.VISITADO
     grid.row_pos, grid.col_pos = rr, cc
 
     hp_depois = player.lider.health if player.lider else 0
@@ -119,7 +146,27 @@ def mover(grid, player: Player, direcao: str, automatico: bool = False) -> Movim
         pegou_pokebola=pegou_pokebola,
         pegou_surf=pegou_surf,
         hp_perdido=max(0, hp_antes - hp_depois),
+        energia_gasta=gasto,
+        em_centro=em_centro,
     )
+
+
+def recarregar(grid, player: Player) -> int:
+    """Enche a energia se o jogador esta num Centro Pokemon.
+
+    Devolve quanto de energia entrou (0 se nao estava num centro, se o tanque
+    ja estava cheio ou se a partida nao usa energia). Parar num centro NAO e
+    automatico: passar por um sem recarregar e exatamente a escolha que o
+    caminhoneiro faz. Por isso a recarga e uma acao separada de mover(), e o
+    bot e o jogador humano chamam a mesma funcao.
+    """
+    if not player.usa_energia:
+        return 0
+    if grid.celula(*grid.posicao).occupied_with != grid_mod.CENTRO:
+        return 0
+    entrou = player.energia_max - player.energia
+    player.energia = player.energia_max
+    return entrou
 
 
 def throw_pokeball(player, pokemon):

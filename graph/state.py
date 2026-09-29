@@ -18,6 +18,11 @@ class Estado:
     pokebolas: int = 0
     pocoes: int = 0
     surf: bool = False
+    # None quando a partida nao usa energia (modo do trabalho 1). O custo de
+    # uma celula NAO depende da energia: ela so decide ate onde o jogador vai
+    # sem parar, e isso e problema do caminhoneiro, nao do Dijkstra.
+    energia: int | None = None
+    energia_max: int | None = None
 
     @classmethod
     def de(cls, player):
@@ -27,4 +32,6 @@ class Estado:
             pokebolas=player.bag.get('pokeball', 0),
             pocoes=player.bag.get('potion', 0),
             surf=player.surf,
+            energia=player.energia,
+            energia_max=player.energia_max,
         )

@@ -30,6 +30,7 @@ CONTEUDO = {
     grid_mod.POKEBOLA: "pokebola",
     grid_mod.CPU: "cpu",
     grid_mod.SURF: "surf",
+    grid_mod.CENTRO: "centro",
     grid_mod.VISITADO: "visitado",
 }
 
