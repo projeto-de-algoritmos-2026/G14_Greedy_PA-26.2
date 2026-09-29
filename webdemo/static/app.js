@@ -16,6 +16,7 @@ const GLIFO = {
   pokebola: "\u{26D4}",
   cpu: "\u{1F94A}",
   surf: "\u{1F3C4}",
+  centro: "\u{1F3E5}",
   visitado: "✅",
 };
 const JOGADOR = "\u{1FAE1}";
