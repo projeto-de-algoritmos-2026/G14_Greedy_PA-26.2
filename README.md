@@ -36,7 +36,7 @@ O plano completo, em fases, está em [`docs/plano-trabalho-2.html`](docs/plano-t
 | --- | --- | --- |
 | 0 | Repositório a partir do Trabalho 1 | feito |
 | 1 | Energia e Centro Pokémon | feito |
-| 2 | Algoritmo do caminhoneiro | a fazer |
+| 2 | Algoritmo do caminhoneiro | feito |
 | 3 | Testes e prova de otimalidade | a fazer |
 | 4 | Estratégias rivais e bot | a fazer |
 | 5 | Benchmark | a fazer |
@@ -63,6 +63,27 @@ O plano completo, em fases, está em [`docs/plano-trabalho-2.html`](docs/plano-t
   centro, e nenhuma distância do Dijkstra mudou.
 - **Energia `None` desliga a regra**, e o jogo, o bot e o benchmark do
   Trabalho 1 funcionam como antes.
+
+## O algoritmo (fase 2)
+
+O caminhoneiro é uma função pura em `greedy/caminhoneiro.py`, separada do mapa e
+do jogo para poder ser testada com listas de números.
+
+- **`marcos_da_rota(caminho, mapa, estado)`** reduz a rota que o Dijkstra
+  devolveu a uma lista de marcos `(custo_acumulado, é_centro)`. A origem entra
+  com custo zero (o tanque começa cheio) e o custo acumulado do último marco é,
+  por construção, o custo total que o Dijkstra calculou.
+- **`paradas(marcos, alcance)`** decide onde parar. A partir do ponto onde o
+  tanque encheu, anda até o **centro mais distante ainda dentro do alcance** e
+  para nele; repete até o destino caber no tanque. Retorna os índices dos
+  centros escolhidos: lista vazia quando a rota inteira cabe num tanque (zero
+  paradas) e `None` quando algum trecho entre pontos de recarga passa do
+  alcance (rota inviável).
+- **`alcance` é o tamanho do tanque** e recarregar num centro enche de novo. É
+  linear no tamanho da rota, porque os marcos já vêm ordenados por ela.
+
+A prova de que o guloso é ótimo (`greedy stays ahead`) e os testes de força
+bruta vêm na fase 3.
 
 ## Como executar
 
