@@ -2,7 +2,9 @@
 
 E o teste que sustenta a apresentacao: em centenas de rotas pequenas o guloso
 para exatamente tantas vezes quanto o minimo achado testando todos os
-subconjuntos de centros.
+subconjuntos de centros. Alem do numero de paradas, confere o invariante que
+a prova usa (greedy stays ahead): a k-esima parada do guloso nunca fica atras
+da k-esima parada de NENHUMA solucao otima.
 
 As rotas sao listas de marcos montadas a mao, sem mapa: o custo de cada passo
 sai de 1 a 6, a mesma faixa dos pesos do trabalho 1 (concreto a grama ferida).
@@ -57,6 +59,18 @@ def test_guloso_para_o_minimo_de_vezes(seed):
     assert guloso is not None
     assert viavel(marcos, alcance, guloso)
     assert len(guloso) == len(otimas[0])
+
+
+@pytest.mark.parametrize("seed", range(ROTAS))
+def test_guloso_fica_a_frente_de_toda_otima(seed):
+    """Invariante da prova: depois de k paradas o guloso esta pelo menos tao
+    longe quanto qualquer otima depois de k paradas. E por isso que ele nunca
+    precisa de uma parada a mais."""
+    marcos, alcance = rota_sorteada(seed)
+    guloso = paradas(marcos, alcance)
+    for otima in solucoes_otimas(marcos, alcance):
+        for g, o in zip(guloso, otima):
+            assert marcos[g][0] >= marcos[o][0]
 
 
 def test_sorteio_cobre_os_tres_desfechos():
