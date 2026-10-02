@@ -132,3 +132,34 @@ class TestCasosDeBorda:
         assert escolhidas == sorted(escolhidas)
         assert all(marcos[i][1] for i in escolhidas)
         assert 0 not in escolhidas and len(marcos) - 1 not in escolhidas
+
+
+class TestTanqueParcial:
+    """O bot comeca cada rota com o que sobrou da anterior, nao cheio."""
+
+    def test_tanque_cheio_e_o_padrao(self):
+        marcos = [(0, False), (15, True), (30, True), (50, False)]
+        assert paradas(marcos, 20, energia_inicial=20) == paradas(marcos, 20)
+
+    def test_pouca_energia_obriga_a_parar_mais_cedo(self):
+        # Cheio, para so em 15 e 30. Com 10 no tanque, o 15 nao e alcancavel e
+        # sobra o centro de 8.
+        marcos = _marcos_do_exemplo()
+        custos = [marcos[i][0] for i in paradas(marcos, 20, energia_inicial=10)]
+        assert custos == [8, 22, 38]
+
+    def test_energia_exata_para_o_primeiro_centro(self):
+        marcos = [(0, False), (10, True), (25, False)]
+        assert paradas(marcos, 20, energia_inicial=10) == [1]
+        assert paradas(marcos, 20, energia_inicial=9) is None
+
+    def test_tanque_vazio_so_chega_se_ja_estiver_no_destino(self):
+        assert paradas([(0, False)], 20, energia_inicial=0) == []
+        assert paradas([(0, False), (1, True), (5, False)], 20,
+                       energia_inicial=0) is None
+
+    def test_energia_fora_da_faixa_e_erro(self):
+        with pytest.raises(ValueError):
+            paradas([(0, False), (10, False)], 20, energia_inicial=21)
+        with pytest.raises(ValueError):
+            paradas([(0, False), (10, False)], 20, energia_inicial=-1)

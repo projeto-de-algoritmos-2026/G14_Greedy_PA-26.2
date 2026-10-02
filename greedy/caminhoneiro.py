@@ -58,13 +58,17 @@ def marcos_da_rota(caminho, mapa, estado):
     return marcos
 
 
-def paradas(marcos, alcance):
+def paradas(marcos, alcance, energia_inicial=None):
     """Minimo de paradas de recarga sobre uma rota ja escolhida.
 
     Entrada:
       marcos   lista de (custo_acumulado, e_centro), ordenada pela rota, com a
                origem em marcos[0] (custo 0). O ultimo marco e o destino.
       alcance  energia maxima (tamanho do tanque). alcance > 0.
+      energia_inicial
+               quanto ha no tanque na origem, de 0 a `alcance`. None e tanque
+               cheio. O bot precisa disso: cada objetivo comeca com o que
+               sobrou do anterior, nao com o tanque cheio.
 
     Saida:
       lista dos INDICES (em `marcos`) dos centros onde parou, na ordem da rota
@@ -79,6 +83,11 @@ def paradas(marcos, alcance):
     base e continua dali. Se antes de achar destino ou um proximo centro
     alcancavel um marco ja estoura o alcance, nao ha como avancar: retorna None.
 
+    Tanque parcial na origem e o mesmo problema com a base recuada: comecar
+    com `energia_inicial` e como ter enchido o tanque `alcance -
+    energia_inicial` antes da origem. So o primeiro trecho muda, e a prova de
+    otimalidade nao depende de onde a base comeca.
+
     Complexidade O(n): cada marco e visitado no maximo duas vezes (uma
     procurando parada, uma depois de recarregar), porque a base so anda pra
     frente.
@@ -87,11 +96,17 @@ def paradas(marcos, alcance):
         raise ValueError("alcance deve ser positivo")
     if not marcos:
         raise ValueError("marcos vazio: a rota precisa ter ao menos a origem")
+    if energia_inicial is None:
+        energia_inicial = alcance
+    if not 0 <= energia_inicial <= alcance:
+        raise ValueError("energia_inicial deve estar entre 0 e alcance")
 
     destino_idx = len(marcos) - 1
     custo_destino = marcos[destino_idx][0]
 
-    base = marcos[0][0]  # tanque cheio na origem, custo acumulado 0
+    # Onde o tanque "encheu" pela ultima vez. Com tanque cheio e a origem;
+    # com tanque parcial, um ponto virtual antes dela.
+    base = marcos[0][0] - (alcance - energia_inicial)
     escolhidas = []
     i = 1
 

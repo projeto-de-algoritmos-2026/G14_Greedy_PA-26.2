@@ -72,3 +72,25 @@ class TestForcaBruta:
             paradas_forca_bruta(TESE, 0)
         with pytest.raises(ValueError):
             paradas_forca_bruta([], 10)
+
+
+class TestTanqueParcial:
+    def test_viavel_cobra_o_primeiro_trecho_com_a_energia_inicial(self):
+        marcos = [(0, False), (10, True), (25, False)]
+        assert viavel(marcos, 20, [1], energia_inicial=10)
+        assert not viavel(marcos, 20, [1], energia_inicial=9)
+
+    def test_depois_da_parada_o_tanque_esta_cheio(self):
+        # 10 no tanque ate o centro em 10; dali, 20 cobre ate o destino em 30.
+        marcos = [(0, False), (10, True), (30, False)]
+        assert viavel(marcos, 20, [1], energia_inicial=10)
+
+    def test_sem_parada_vale_a_energia_inicial(self):
+        marcos = [(0, False), (10, True), (15, False)]
+        assert viavel(marcos, 20, [], energia_inicial=15)
+        assert not viavel(marcos, 20, [], energia_inicial=14)
+        assert solucoes_otimas(marcos, 20, energia_inicial=14) == [[1]]
+
+    def test_energia_fora_da_faixa_e_erro(self):
+        with pytest.raises(ValueError):
+            solucoes_otimas(TESE, 20, energia_inicial=21)

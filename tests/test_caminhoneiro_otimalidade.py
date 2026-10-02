@@ -83,6 +83,23 @@ def test_sem_solucao_so_quando_nem_todo_centro_resolve(seed):
         not viavel(marcos, alcance, todo_centro))
 
 
+@pytest.mark.parametrize("seed", range(ROTAS))
+def test_guloso_minimo_com_tanque_parcial(seed):
+    """O mesmo confronto, comecando com uma fracao sorteada do tanque."""
+    marcos, alcance = rota_sorteada(seed)
+    energia = random.Random(-seed - 1).randint(0, alcance)
+    guloso = paradas(marcos, alcance, energia)
+    otima = solucoes_otimas(marcos, alcance, energia)
+    if not otima:
+        assert guloso is None
+        return
+    assert viavel(marcos, alcance, guloso, energia)
+    assert len(guloso) == len(otima[0])
+    for o in otima:
+        for g, oo in zip(guloso, o):
+            assert marcos[g][0] >= marcos[oo][0]
+
+
 def test_sorteio_cobre_os_tres_desfechos():
     """Sem isso os testes acima poderiam passar so com rotas triviais."""
     zero = com_paradas = sem_solucao = 0
