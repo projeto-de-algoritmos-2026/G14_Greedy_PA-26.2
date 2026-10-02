@@ -73,8 +73,18 @@ def test_guloso_fica_a_frente_de_toda_otima(seed):
             assert marcos[g][0] >= marcos[o][0]
 
 
+@pytest.mark.parametrize("seed", range(ROTAS))
+def test_sem_solucao_so_quando_nem_todo_centro_resolve(seed):
+    """O guloso so desiste quando parar em TODO centro tambem nao chega. Ou
+    seja, None e propriedade da rota, nao falha da estrategia."""
+    marcos, alcance = rota_sorteada(seed)
+    todo_centro = candidatos(marcos)
+    assert (paradas(marcos, alcance) is None) == (
+        not viavel(marcos, alcance, todo_centro))
+
+
 def test_sorteio_cobre_os_tres_desfechos():
-    """Sem isso o teste acima poderia passar so com rotas triviais."""
+    """Sem isso os testes acima poderiam passar so com rotas triviais."""
     zero = com_paradas = sem_solucao = 0
     for seed in range(ROTAS):
         resultado = paradas(*rota_sorteada(seed))
