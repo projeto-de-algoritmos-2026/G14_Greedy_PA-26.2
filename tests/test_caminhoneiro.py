@@ -1,7 +1,8 @@
-"""Teste de fumaca da fase 2: o algoritmo do caminhoneiro.
+"""O algoritmo do caminhoneiro, testado sem mapa.
 
-So o exemplo canonico do plano (o desenho da tese) e os contratos de retorno.
-Forca bruta, prova de otimalidade e casos de borda completos sao a fase 3.
+A fase 2 trouxe o exemplo canonico do plano (o desenho da tese) e os contratos
+de retorno; a fase 3 acrescenta os casos de borda. A comparacao com a forca
+bruta fica em test_caminhoneiro_otimalidade.py.
 """
 import pytest
 
@@ -47,3 +48,87 @@ def test_trecho_maior_que_o_alcance_nao_tem_solucao():
 def test_alcance_nao_positivo_e_erro():
     with pytest.raises(ValueError):
         paradas([(0, False), (10, False)], alcance=0)
+
+
+# Casos de borda (fase 3). Cada um fixa uma fronteira do contrato: onde o <=
+# vira <, onde a origem e o destino deixam de ser candidatos a parada, e onde
+# o guloso tem que ignorar o que nao e centro.
+
+
+class TestCasosDeBorda:
+    def test_destino_exatamente_no_alcance_nao_precisa_parar(self):
+        # O alcance fecha o intervalo: chegar com o tanque zerado e chegar.
+        assert paradas([(0, False), (10, True), (20, False)], alcance=20) == []
+
+    def test_destino_um_alem_do_alcance_obriga_a_parar(self):
+        assert paradas([(0, False), (10, True), (21, False)], alcance=20) == [1]
+
+    def test_centro_exatamente_no_limite_e_alcancavel(self):
+        marcos = [(0, False), (20, True), (40, False)]
+        assert paradas(marcos, alcance=20) == [1]
+
+    def test_centro_um_alem_do_limite_torna_a_rota_inviavel(self):
+        marcos = [(0, False), (20, True), (40, False)]
+        assert paradas(marcos, alcance=19) is None
+
+    def test_trecho_impossivel_no_meio_da_rota(self):
+        # O primeiro trecho cabe, mas 10 -> 35 (25) passa do alcance e nao ha
+        # centro entre eles: parar em todo centro tambem nao resolveria.
+        marcos = [(0, False), (10, True), (35, True), (50, False)]
+        assert paradas(marcos, alcance=20) is None
+
+    def test_trecho_impossivel_no_fim_da_rota(self):
+        marcos = [(0, False), (15, True), (40, False)]
+        assert paradas(marcos, alcance=20) is None
+
+    def test_centro_na_origem_nao_conta_como_parada(self):
+        # Parar na origem e inutil: o tanque ja comeca cheio. O guloso nunca
+        # devolve o indice 0, e a rota so e viavel se o resto dela for.
+        assert paradas([(0, True), (15, False), (30, False)], alcance=20) is None
+        assert paradas([(0, True), (10, True), (25, False)], alcance=20) == [1]
+
+    def test_centro_no_destino_nao_conta_como_parada(self):
+        # Chegou, acabou: recarregar no destino nao e parada da viagem.
+        assert paradas([(0, False), (10, True), (30, True)], alcance=20) == [1]
+
+    def test_rota_so_com_a_origem(self):
+        # Origem == destino: nada a percorrer, zero paradas.
+        assert paradas([(0, False)], alcance=5) == []
+
+    def test_marcos_vazio_e_erro(self):
+        with pytest.raises(ValueError):
+            paradas([], alcance=10)
+
+    def test_alcance_negativo_e_erro(self):
+        with pytest.raises(ValueError):
+            paradas([(0, False), (10, False)], alcance=-1)
+
+    def test_passa_direto_pelos_centros_mais_proximos(self):
+        # Centros em 5, 10 e 18, alcance 20: so o de 18 interessa.
+        marcos = [(0, False), (5, True), (10, True), (18, True), (30, False)]
+        assert paradas(marcos, alcance=20) == [3]
+
+    def test_ponto_que_nao_e_centro_nunca_vira_parada(self):
+        # O ponto mais distante dentro do alcance e celula comum (19); o guloso
+        # tem que voltar ao centro mais distante (12), nao ao ponto.
+        marcos = [(0, False), (6, False), (12, True), (19, False), (30, False)]
+        assert paradas(marcos, alcance=20) == [2]
+
+    def test_sem_nenhum_centro_e_rota_longa(self):
+        marcos = [(0, False), (8, False), (16, False), (24, False)]
+        assert paradas(marcos, alcance=20) is None
+
+    def test_parada_obrigatoria_em_todo_centro(self):
+        # Centros espacados exatamente de 20 em 20: nao ha escolha, o minimo e
+        # parar em todos. O guloso nao pode pular nenhum.
+        marcos = [(0, False), (20, True), (40, True), (60, True), (80, False)]
+        assert paradas(marcos, alcance=20) == [1, 2, 3]
+
+    def test_indices_crescentes_e_todos_centros(self):
+        marcos = [(0, False)]
+        marcos += [(c, c % 3 == 0) for c in range(1, 100)]
+        marcos.append((100, False))
+        escolhidas = paradas(marcos, alcance=10)
+        assert escolhidas == sorted(escolhidas)
+        assert all(marcos[i][1] for i in escolhidas)
+        assert 0 not in escolhidas and len(marcos) - 1 not in escolhidas
