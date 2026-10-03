@@ -84,3 +84,28 @@ def test_estrategias_que_chegam_no_corredor(mapa, viajante, nome):
     resultado = executar_bot(mapa, viajante, estrategia=ESTRATEGIAS[nome])
     assert resultado.objetivos_visitados == [(0, 5)]
     assert resultado.paradas >= 1
+
+
+class TestRotaSemRecargaPossivel:
+    """Tanque de 2 e so o centro de (0, 2): de la ate a pokebola sao 3."""
+
+    @pytest.fixture
+    def mapa_sem_saida(self, mapa, viajante):
+        mapa.celula(0, 3).occupied_with = grid.LIVRE
+        viajante.energia = viajante.energia_max = 2
+        return mapa
+
+    @pytest.mark.parametrize("nome", ["guloso", "otimo"])
+    def test_para_antes_de_andar(self, mapa_sem_saida, viajante, nome):
+        resultado = executar_bot(mapa_sem_saida, viajante,
+                                 estrategia=ESTRATEGIAS[nome])
+        assert resultado.motivo_parada == "rota sem recarga possivel"
+        assert resultado.movimentos == []
+        assert viajante.energia == 2
+        assert viajante.desmaiado is False
+
+    def test_todo_centro_nao_sabe_e_desmaia(self, mapa_sem_saida, viajante):
+        resultado = executar_bot(mapa_sem_saida, viajante,
+                                 estrategia=todo_centro)
+        assert resultado.motivo_parada == "sem energia"
+        assert resultado.paradas == 1

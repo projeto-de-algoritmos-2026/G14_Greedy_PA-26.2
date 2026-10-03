@@ -106,6 +106,15 @@ def executar_bot(
         if estrategia is not None and player.usa_energia:
             marcos = marcos_da_rota(caminho, mapa, estado)
             escolhidas = estrategia(marcos, player.energia_max, player.energia)
+            if escolhidas is None:
+                # So guloso e otimo devolvem None, e so quando nem parar em
+                # todo centro chega. Sair andando seria desmaiar com certeza:
+                # a partida registra o motivo, como a origem ilhada do
+                # trabalho 1, e nao gasta passo nenhum.
+                resultado.motivo_parada = "rota sem recarga possivel"
+                if visual:
+                    print(f"Sem recarga possivel ate {destino}.")
+                break
             if escolhidas:
                 parada = caminho[escolhidas[0]]
                 caminho = caminho[:escolhidas[0] + 1]
