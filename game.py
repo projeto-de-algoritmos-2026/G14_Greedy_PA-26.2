@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from rich import print
 
 import grid as grid_mod
-from graph.cost import custo_entrada
+from graph.cost import custo_entrada, custo_terreno
 from graph.state import Estado
 from models import CpuPlayer, Player, Pokemon, generate_rand_pokemon
 
@@ -54,6 +54,14 @@ class Movimento:
     energia_gasta: int = 0
     desmaiou: bool = False
     em_centro: bool = False
+    # Fase 6. A conta do custo de entrar, aberta em duas parcelas pra interface
+    # dizer "3 de grama + 8 de batalha" sem recalcular a regra: quem calcula e
+    # graph/cost.py, o mesmo peso que o Dijkstra usou. Num passo valido a soma
+    # das duas e energia_gasta. No desmaio o passo nao acontece (energia_gasta
+    # fica 0), mas as duas trazem o que a entrada cobraria, que e o que a tela
+    # precisa pra explicar por que o treinador caiu. Zeradas sem energia.
+    custo_terreno: int = 0
+    custo_conteudo: int = 0
 
 
 def partida_encerrada(player: Player) -> str:
@@ -98,13 +106,20 @@ def mover(grid, player: Player, direcao: str, automatico: bool = False) -> Movim
     # grafo divergissem, o caminhoneiro calcularia paradas pra uma energia que
     # o jogo nao cobra.
     gasto = 0
+    terreno = conteudo = 0
     if player.usa_energia:
-        gasto = custo_entrada(destino, Estado.de(player))
+        estado = Estado.de(player)
+        terreno = custo_terreno(destino, estado)
+        gasto = custo_entrada(destino, estado)
+        # O conteudo e o que sobra do custo total: assim as duas parcelas nunca
+        # divergem do peso que o grafo usa, mesmo se a tabela de penalidades mudar.
+        conteudo = gasto - terreno
         if gasto > player.energia:
             # Nao anda com o tanque vazio: desmaia onde esta. O passo nao
             # acontece, e a partida registra a falha em vez de seguir.
             player.desmaiado = True
-            return Movimento(False, grid.posicao, motivo="sem energia", desmaiou=True)
+            return Movimento(False, grid.posicao, motivo="sem energia", desmaiou=True,
+                             custo_terreno=terreno, custo_conteudo=conteudo)
         player.energia -= gasto
 
     hp_antes = player.lider.health if player.lider else 0
@@ -148,6 +163,8 @@ def mover(grid, player: Player, direcao: str, automatico: bool = False) -> Movim
         hp_perdido=max(0, hp_antes - hp_depois),
         energia_gasta=gasto,
         em_centro=em_centro,
+        custo_terreno=terreno,
+        custo_conteudo=conteudo,
     )
 
 

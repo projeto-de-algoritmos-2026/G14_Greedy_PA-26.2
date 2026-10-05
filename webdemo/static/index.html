@@ -2,178 +2,161 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>G14 - Pathfinding no Pokemon</title>
-<link rel="stylesheet" href="/app.css">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>G14 · Caminhoneiro no Pokémon CLI</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2312b7a3'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-size='14' font-weight='800' fill='%2304231f' font-family='monospace'%3EG%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/css/t2.css">
 </head>
 <body>
 
-<header class="topo">
-  <div class="marca">
-    <strong>G14</strong>
-    <span>Pathfinding no Pokemon</span>
-  </div>
-  <nav class="abas" role="tablist">
-    <button class="aba ativa" data-vista="jogo" role="tab">Jogo</button>
-    <button class="aba" data-vista="bot" role="tab">Bot</button>
-    <button class="aba" data-vista="bench" role="tab">Benchmark</button>
+<header class="top">
+  <div class="brand">G14<small>Caminhoneiro no Pokémon CLI</small></div>
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn on" data-tab="jogo">Jogo</button>
+    <button class="tab-btn" data-tab="bot">Bot</button>
+    <button class="tab-btn" data-tab="comparar"><span class="dot"></span>Comparar</button>
+    <button class="tab-btn" data-tab="bench">Benchmark <span class="wait">T1 + T2</span></button>
   </nav>
+  <div class="spacer"></div>
+  <a class="ghost" href="/t1" title="A demo do Trabalho 1, como era">Demo do T1</a>
+  <button class="ghost" id="btn-legenda">Legenda</button>
 </header>
 
 <main>
-<div class="vistas">
 
-  <!-- ===================== JOGO ===================== -->
-  <section class="vista ativa" id="vista-jogo">
-    <div class="painel">
-      <div class="controles">
-        <label>tamanho <input type="number" id="jogo-size" value="10" min="3" max="40"></label>
-        <label>seed <input type="number" id="jogo-seed" value="3" min="0"></label>
-        <button class="primario" id="jogo-novo">Nova partida</button>
+<!-- ============ JOGO ============ -->
+<section class="tab on" id="tab-jogo">
+  <div class="cols">
+    <div class="side left">
+      <div class="panel">
+        <h3>Partida</h3>
+        <div class="field"><label for="j-size">Tamanho</label><input type="number" id="j-size" value="8" min="3" max="40"></div>
+        <div class="field"><label for="j-seed">Seed</label><input type="number" id="j-seed" value="4" min="0"></div>
+        <div class="field"><label for="j-energia">Energia máx. <small id="j-energia-dica"></small></label><input type="number" id="j-energia" min="1" max="300"></div>
+        <div class="presets" id="j-presets"></div>
+        <button class="btn primary block" id="j-novo">Nova partida</button>
       </div>
-      <div class="controles">
-        <button class="discreto" data-surf="jogo">achar seed com Surf pegavel</button>
+      <div class="panel">
+        <h3>Objetivo</h3>
+        <p>Capture <b style="color:var(--text)" data-meta>4 Pokémon</b>. Cada passo gasta energia (o custo do Trabalho 1) e <b style="color:var(--text)">batalha cobra tudo de uma vez</b>. Sem energia para o passo, o treinador desmaia.</p>
+        <p><b style="color:var(--jade)">Para recarregar:</b> entre num Centro (ícone verde com o selo R) e aperte <kbd>R</kbd>. Entrar não recarrega sozinho.</p>
       </div>
-      <p class="nota" id="jogo-surf"></p>
-      <p class="nota"><strong>Objetivo: capturar 4 pokemon.</strong> E a mesma condicao que
-      encerra o laco do bot (<code>POKEMON_PARA_VENCER</code>): time cheio vence, time zerado
-      perde. O bot escolhe alvos pelo score da fase 4; aqui quem escolhe e voce.</p>
-      <p class="nota">Ande com <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> ou as setas.
-      Cada tecla vira uma chamada a <code>game.mover()</code>, a mesma funcao que o bot usa.</p>
-      <p class="nota aviso">A batalha resolve sozinha (primeiro golpe): o <code>battle()</code>
-      le do teclado do terminal, e daqui isso penduraria a conexao.</p>
     </div>
-    <div class="tabuleiro">
-      <div class="palco"><div class="grade" id="jogo-grade"></div></div>
-      <div class="hud" id="jogo-hud"></div>
-      <p class="rodape-msg" id="jogo-msg"></p>
+    <div class="stage">
+      <div class="hud" id="j-hud"></div>
+      <div class="mapslot"><div class="mapwrap" id="j-map"></div></div>
+      <div class="hint"><span><b style="color:var(--jade)"><kbd>R</kbd> em cima de um Centro recarrega</b></span><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ou setas: andar</span><span>passe o mouse numa célula vizinha para ver quanto custa entrar</span></div>
     </div>
-  </section>
-
-  <!-- ===================== BOT ===================== -->
-  <section class="vista" id="vista-bot">
-    <div class="painel">
-      <div class="controles">
-        <label>tamanho <input type="number" id="bot-size" value="15" min="3" max="40"></label>
-        <label>seed <input type="number" id="bot-seed" value="2" min="0"></label>
-        <label>HP <input type="number" id="bot-hp" value="100" min="0" max="100"></label>
-        <label class="check"><input type="checkbox" id="bot-surf"> Surf</label>
-        <button class="discreto" data-surf="bot">achar seed com Surf pegavel</button>
-      </div>
-      <p class="nota" id="bot-surf-status"></p>
-
-      <h3>Comparar a rota</h3>
-      <p class="nota">Clique numa celula alcancavel. Os tres algoritmos calculam a MESMA rota, no
-      mesmo estado. So o algoritmo muda.</p>
-      <div id="bot-rotas" class="cartoes"></div>
-
-      <h3>Ver o bot jogar</h3>
-      <div class="controles">
-        <button class="primario" data-algoritmo="dfs">DFS</button>
-        <button class="primario" data-algoritmo="bfs">BFS</button>
-        <button class="primario" data-algoritmo="dijkstra">Dijkstra</button>
-      </div>
-      <div id="bot-status" class="cartoes"></div>
-
-      <h3>As medidas</h3>
-      <ul class="glossario">
-        <li><b>custo</b><em>soma do peso das celulas em que se entrou. E a grandeza que o
-        trabalho compara.</em></li>
-        <li><b>passos</b><em>quantas casas foram andadas. Menos passos nao e menor custo: e essa
-        a tese.</em></li>
-        <li><b>nos expandidos</b><em>quantos vertices o algoritmo tirou da fronteira e processou.
-        Conta na SAIDA da fila, nao na descoberta. Mede esforco sem depender da maquina, ao
-        contrario do milissegundo.</em></li>
-      </ul>
-
-      <h3>Por que o bot replaneja</h3>
-      <ul class="glossario">
-        <li><b>o grafo muda enquanto ele anda</b><em>batalha derruba o HP e a grama encarece
-        (muda o PESO); pegar Surf faz a agua virar aresta (muda a FORMA); celula visitada perde a
-        penalidade de batalha; e o alvo alcancado deixa de valer utilidade. O log diz qual desses
-        motivou cada replanejamento.</em></li>
-        <li><b>por objetivo, nao por passo</b><em>a alternativa correta seria um grafo sobre
-        posicao x estado, que explode de tamanho. Replanejar a cada objetivo da o mesmo resultado
-        e cabe no prazo.</em></li>
-        <li><b>a rota nunca fica invalida</b><em>o custo de uma celula so cai com o tempo, porque
-        a batalha nao repete. O plano so pode ficar sub-otimo, nunca impossivel.</em></li>
-      </ul>
+    <div class="side right">
+      <div class="panel"><h3>Diário da partida</h3><ul class="feed" id="j-feed"></ul></div>
     </div>
-    <div class="tabuleiro">
-      <div class="palco"><div class="grade" id="bot-grade"></div></div>
-      <div class="hud" id="bot-hud"></div>
-      <p class="rodape-msg" id="bot-msg"></p>
-      <div class="passo-a-passo">
-        <label for="bot-ritmo">ritmo da tela</label>
-        <input type="range" id="bot-ritmo" min="40" max="700" step="20" value="200">
-        <span id="bot-ritmo-valor">200ms</span>
-        <em>o passo chega assim que o Python executa; o ritmo so controla a velocidade
-        com que a tela consome a fila</em>
+  </div>
+</section>
+
+<!-- ============ BOT ============ -->
+<section class="tab" id="tab-bot">
+  <div class="cols">
+    <div class="side left">
+      <div class="panel">
+        <h3>Partida</h3>
+        <div class="field"><label for="b-size">Tamanho</label><input type="number" id="b-size" value="8" min="3" max="40"></div>
+        <div class="field"><label for="b-seed">Seed</label><input type="number" id="b-seed" value="4" min="0"></div>
       </div>
-      <ol class="log" id="bot-log"></ol>
-    </div>
-  </section>
-
-  <!-- ===================== BENCHMARK ===================== -->
-  <section class="vista" id="vista-bench">
-    <div class="painel largo">
-      <div class="controles">
-        <label>tamanhos <input type="text" id="bench-tamanhos" value="8,15,30"></label>
-        <label>seeds <input type="number" id="bench-seeds" value="30" min="1" max="200"></label>
-        <label>repeticoes <input type="number" id="bench-rep" value="25" min="1" max="200"></label>
-        <button class="primario" id="bench-rodar">Largar a corrida</button>
+      <div class="panel">
+        <h3>Rota</h3>
+        <div class="seg" id="b-algo" style="width:100%">
+          <button data-a="dfs" style="flex:1;text-align:center">DFS</button>
+          <button data-a="bfs" style="flex:1;text-align:center">BFS</button>
+          <button data-a="dijkstra" class="on" style="flex:1;text-align:center">Dijkstra</button>
+        </div>
+        <p style="margin-top:8px">O objetivo do T1 continua: <b style="color:var(--text)">capturar <span data-meta>4 Pokémon</span></b> pela rota mais barata. O T2 soma a restrição de energia: onde parar para recarregar.</p>
       </div>
-      <p class="nota"><strong>Um processo por algoritmo</strong>, nao thread: sob o GIL tres
-      threads se revezariam e o tempo na tela nao significaria nada. Cada raia roda
-      <strong>os dois experimentos</strong> e todo numero e <strong>media</strong>.
-      <strong>Nos expandidos</strong> = vertices que o algoritmo tirou da fronteira e processou,
-      medida de esforco que nao depende da maquina. Objetivo so existe na partida completa, e os
-      custos dos dois grupos <strong>nao sao comparaveis entre si</strong>: na partida o mapa muda
-      durante a execucao.</p>
+      <div class="panel">
+        <h3>Estratégia de parada</h3>
+        <div class="seg col" id="b-estr"></div>
+      </div>
+      <div class="panel">
+        <h3>Alcance</h3>
+        <div class="field"><label for="b-alc">Energia máxima: <span id="b-alc-v">-</span></label><input type="range" id="b-alc" min="1" max="300" value="100"></div>
+        <div class="presets" id="b-presets"></div>
+        <p class="aviso-alcance" id="b-alc-aviso"></p>
+      </div>
     </div>
-    <div class="raias" id="bench-raias"></div>
-    <div class="painel largo" id="bench-veredito"></div>
-  </section>
+    <div class="stage">
+      <div class="hud" id="b-hud"></div>
+      <div class="mapslot"><div class="mapwrap" id="b-map"></div></div>
+      <div class="transport">
+        <button class="btn" id="b-reset" title="Reiniciar">⏮</button>
+        <button class="btn primary" id="b-play" style="min-width:112px">▶ Jogar</button>
+        <div class="seg" id="b-speed" style="margin-left:auto"><button data-s="0.5">0,5×</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button></div>
+      </div>
+      <div class="ruler-wrap">
+        <div class="panel">
+          <h3>Régua da missão (custo acumulado)</h3>
+          <svg id="b-ruler"></svg>
+          <div class="legend-row">
+            <span><i style="background:var(--jade)"></i>energia usada no tanque</span>
+            <span><i style="background:var(--amber);opacity:.6"></i>energia jogada fora ao parar</span>
+            <span><i style="background:#3a4658;width:4px;height:12px;border-radius:1px"></i>Centro ignorado</span>
+            <span><i style="background:var(--jade);width:8px;height:14px;border-radius:2px"></i>parada</span>
+            <span><i style="background:var(--amber);width:10px;height:10px;border-radius:2px;transform:rotate(45deg)"></i>Pokémon capturado</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="side right">
+      <div class="panel"><h3>O bot narra</h3><ul class="feed" id="b-feed"></ul></div>
+    </div>
+  </div>
+</section>
 
-</div>
+<!-- ============ COMPARAR ============ -->
+<section class="tab" id="tab-comparar">
+  <div class="cmp-head">
+    <div>
+      <h1>Mesma missão, seis jeitos de parar</h1>
+      <p>Parar tarde não é parar pouco. Cada raia é o bot jogando de verdade a mesma missão, no mesmo mapa e com o mesmo tanque; muda só a regra de parada.</p>
+    </div>
+    <div class="cmp-ctl">
+      <div class="field"><label for="c-size">Mapa</label>
+        <div style="display:flex;gap:6px"><input type="number" id="c-size" value="8" min="3" max="40" style="width:64px" aria-label="Tamanho"><input type="number" id="c-seed" value="4" min="0" style="width:64px" aria-label="Seed"></div>
+      </div>
+      <div class="field"><label for="c-alc">Alcance: <span id="c-alc-v">-</span></label><input type="range" id="c-alc" min="1" max="300" value="64"></div>
+      <div class="presets" id="c-presets"></div>
+      <button class="btn primary" id="c-go" style="min-width:140px">▶ Largar corrida</button>
+    </div>
+  </div>
+  <div class="lanes" id="c-lanes"></div>
+  <div class="verdict" id="c-verdict"></div>
+</section>
 
-<aside class="legenda" id="legenda">
-  <h3>Terreno<em>custo de entrar</em></h3>
-  <ul>
-    <li><i class="t concrete"></i><span>concreto</span><b>1</b></li>
-    <li><i class="t grass"></i><span>grama<em>sobe conforme o HP cai</em></span><b>3 a 6</b></li>
-    <li><i class="t water"></i><span>agua<em>so existe com Surf</em></span><b>4</b></li>
-  </ul>
+<!-- ============ BENCHMARK ============ -->
+<section class="tab" id="tab-bench">
+  <div class="cmp-head">
+    <div>
+      <h1>Benchmark</h1>
+      <p id="bn-sub"></p>
+    </div>
+    <div class="cmp-ctl">
+      <div class="field"><label>Página</label>
+        <div class="seg" id="bn-page"><button data-p="t1" class="on">Trabalho 1 · Grafos</button><button data-p="t2">Trabalho 2 · Guloso</button><button data-p="ac">Juntos</button></div>
+      </div>
+      <div class="field"><label>Mapa</label>
+        <div class="seg" id="bn-size"><button data-s="8">8×8</button><button data-s="15" class="on">15×15</button><button data-s="30">30×30</button></div>
+      </div>
+      <div class="field" id="bn-alc-wrap"><label title="Fração do custo da rota do Dijkstra: 30%, 50% e 75%">Alcance</label>
+        <div class="seg" id="bn-alc"><button data-a="curto">Curto</button><button data-a="medio" class="on">Médio</button><button data-a="longo">Longo</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="bn-body" id="bn-body"></div>
+</section>
 
-  <h3>Conteudo da celula</h3>
-  <ul>
-    <li><i class="g">&#127796;</i><span>livre</span><b></b></li>
-    <li><i class="g">&#129428;</i><span>pokemon selvagem<em>batalha forcada</em></span><b>+8</b></li>
-    <li><i class="g">&#129354;</i><span>treinador<em>batalha, premio maior</em></span><b>+12</b></li>
-    <li><i class="g">&#9940;</i><span>pokebola<em>item, sem penalidade</em></span><b></b></li>
-    <li><i class="g">&#127940;</i><span>item de Surf<em>abre a agua</em></span><b></b></li>
-    <li><i class="g">&#128695;</i><span>bloqueio<em>a aresta nao existe</em></span><b></b></li>
-    <li><i class="g">&#9989;</i><span>visitado<em>batalha nao repete</em></span><b></b></li>
-    <li><i class="g">&#129761;</i><span>voce</span><b></b></li>
-  </ul>
-
-  <h3>Marcacoes</h3>
-  <ul>
-    <li><i class="apagado"></i><span>escurecido<em>fora do alcance da origem</em></span><b></b></li>
-    <li><i class="numerado">1</i><span>objetivo<em>ordem de visita da fase 4</em></span><b></b></li>
-    <li><i class="tracejado"></i><span>candidato<em>perdeu no score</em></span><b></b></li>
-  </ul>
-
-  <h3>Rotas</h3>
-  <ul>
-    <li><i class="linha dfs"></i><span>DFS</span><b></b></li>
-    <li><i class="linha bfs"></i><span>BFS</span><b></b></li>
-    <li><i class="linha dijkstra"></i><span>Dijkstra</span><b></b></li>
-  </ul>
-
-</aside>
 </main>
 
-<script src="/app.js"></script>
+<aside class="drawer" id="dr-legenda"></aside>
+<div class="tip" id="tip"></div>
+
+<script type="module" src="/static/js/main.js"></script>
 </body>
 </html>

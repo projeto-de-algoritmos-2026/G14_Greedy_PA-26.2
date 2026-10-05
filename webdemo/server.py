@@ -22,10 +22,26 @@ from urllib.parse import parse_qs, urlparse
 
 from bench.common import ALGORITMOS, SEEDS, TAMANHOS
 
-from . import api
+from greedy.estrategias import ESTRATEGIAS
+
+from . import api, api_greedy
 from .benchmark import eventos_benchmark
 
 ESTATICOS = Path(__file__).resolve().parent / "static"
+
+# `mimetypes` consulta o sistema, e no Windows (o README usa PowerShell) um .js
+# pode sair como text/plain, que o navegador RECUSA como modulo ES. Fixar aqui.
+TIPOS = {
+    ".js": "text/javascript",
+    ".mjs": "text/javascript",
+    ".css": "text/css",
+    ".html": "text/html",
+    ".svg": "image/svg+xml",
+    ".json": "application/json",
+}
+
+# Valor de `estrategia` que pede o bot do T1: anda a rota inteira sem parar.
+SEM_ESTRATEGIA = "nenhuma"
 
 
 def _primeiro(consulta, chave, padrao=None):
@@ -105,7 +121,9 @@ class Manipulador(BaseHTTPRequestHandler):
             self._json({"erro": "nao encontrado"}, status=404)
             return
         corpo = caminho.read_bytes()
-        tipo = mimetypes.guess_type(caminho.name)[0] or "application/octet-stream"
+        tipo = (TIPOS.get(caminho.suffix.lower())
+                or mimetypes.guess_type(caminho.name)[0]
+                or "application/octet-stream")
         self.send_response(200)
         self.send_header("Content-Type", f"{tipo}; charset=utf-8")
         self.send_header("Content-Length", str(len(corpo)))
@@ -115,6 +133,55 @@ class Manipulador(BaseHTTPRequestHandler):
 
     # ---------------- rotas ----------------
 
+    def _rota_t2(self, rota, consulta):
+        """Rotas do trabalho 2 (`/api/t2/*`). Devolve False se nao for uma delas.
+
+        Casca fina sobre `webdemo/api_greedy.py`, no mesmo estilo do T1: parametros
+        em query string, movimento do jogo por GET como em `/api/jogo/mover`.
+        """
+        size = api.limitar(_primeiro(consulta, "size"), 3, api.MAX_TAMANHO, 15)
+        seed = api.limitar(_primeiro(consulta, "seed"), 0, api.MAX_SEED, 42)
+        sessao = _primeiro(consulta, "sessao", "")
+
+        if rota == "/api/t2/config":
+            self._json(api_greedy.config())
+        elif rota == "/api/t2/benchmark":
+            self._json(api_greedy.benchmark())
+        elif rota == "/api/t2/alcance":
+            self._json(api_greedy.dados_alcance(size, seed, _primeiro(consulta, "alcance")))
+        elif rota == "/api/t2/jogo/novo":
+            self._json(api_greedy.criar_jogo(size, seed, _primeiro(consulta, "energia")))
+        elif rota == "/api/t2/jogo/estado":
+            self._json(api_greedy.estado_jogo(sessao))
+        elif rota == "/api/t2/jogo/mover":
+            self._json(api_greedy.mover_jogo(sessao, _primeiro(consulta, "direcao", "")))
+        elif rota == "/api/t2/jogo/recarregar":
+            self._json(api_greedy.recarregar_jogo(sessao))
+        elif rota == "/api/t2/comparar":
+            algoritmo = _primeiro(consulta, "algoritmo", "dijkstra")
+            if algoritmo not in ALGORITMOS:
+                self._json({"erro": f"algoritmo desconhecido: {algoritmo}"}, 400)
+            else:
+                try:
+                    self._json(api_greedy.comparar(size, seed, _primeiro(consulta, "energia"), algoritmo))
+                except RuntimeError as erro:
+                    self._json({"erro": str(erro)}, 503)
+        elif rota == "/api/t2/partida":
+            algoritmo = _primeiro(consulta, "algoritmo", "dijkstra")
+            estrategia = _primeiro(consulta, "estrategia", api_greedy.ESTRATEGIA_PADRAO)
+            if estrategia == SEM_ESTRATEGIA:
+                estrategia = None
+            if algoritmo not in ALGORITMOS:
+                self._json({"erro": f"algoritmo desconhecido: {algoritmo}"}, 400)
+            elif estrategia is not None and estrategia not in ESTRATEGIAS:
+                self._json({"erro": f"estrategia desconhecida: {estrategia}"}, 400)
+            else:
+                self._transmitir(api_greedy.eventos_partida(
+                    size, seed, algoritmo, _primeiro(consulta, "energia"), estrategia))
+        else:
+            return False
+        return True
+
     def do_GET(self):
         endereco = urlparse(self.path)
         rota = endereco.path
@@ -122,8 +189,15 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if rota in ("/", "/index.html"):
             return self._estatico("index.html")
-        if rota in ("/app.js", "/app.css"):
+        # A demo do Trabalho 1, intacta, para comparar e como rede de seguranca.
+        if rota in ("/t1", "/t1.html"):
+            return self._estatico("t1.html")
+        if rota in ("/t1.js", "/t1.css"):
             return self._estatico(rota.lstrip("/"))
+        if rota.startswith("/static/"):
+            return self._estatico(rota[len("/static/"):])
+        if rota.startswith("/api/t2/") and self._rota_t2(rota, consulta):
+            return
 
         if rota == "/api/config":
             return self._json({

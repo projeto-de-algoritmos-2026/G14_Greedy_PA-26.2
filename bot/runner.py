@@ -41,6 +41,8 @@ def executar_bot(
     ao_planejar=None,
     ao_passo=None,
     estrategia=None,
+    ao_paradas=None,
+    ao_recarga=None,
 ) -> ResultadoBot:
     """Planeja, executa um objetivo e replaneja ate a partida parar.
 
@@ -63,6 +65,13 @@ def executar_bot(
     ate a primeira parada escolhida, recarrega com game.recarregar e replaneja
     dali com o tanque cheio. Sem ela o bot anda a rota inteira, como no
     trabalho 1.
+
+    Fase 6, dois ganchos a mais, so com estrategia e energia: `ao_paradas(marcos,
+    escolhidas)` dispara ao escolher onde parar num plano (`escolhidas` e None
+    quando nem parar em todo centro chega, e o bot desiste da rota logo em
+    seguida), e `ao_recarga(posicao, entrou, sobrava)` dispara depois da
+    recarga: `entrou` e o que foi enchido e `sobrava` o que ainda havia no
+    tanque, a parcela que `energia_desperdicada` acumula.
     """
     resultado = ResultadoBot()
     passos = 0
@@ -106,6 +115,8 @@ def executar_bot(
         if estrategia is not None and player.usa_energia:
             marcos = marcos_da_rota(caminho, mapa, estado)
             escolhidas = estrategia(marcos, player.energia_max, player.energia)
+            if ao_paradas is not None:
+                ao_paradas(marcos, escolhidas)
             if escolhidas is None:
                 # So guloso e otimo devolvem None, e so quando nem parar em
                 # todo centro chega. Sair andando seria desmaiar com certeza:
@@ -129,6 +140,8 @@ def executar_bot(
             entrou = game.recarregar(mapa, player)
             resultado.paradas += 1
             resultado.energia_desperdicada += player.energia_max - entrou
+            if ao_recarga is not None:
+                ao_recarga(parada, entrou, player.energia_max - entrou)
             if visual:
                 print(f"Recarregou em {parada}: +{entrou} de energia")
             # A rota foi cortada na parada de proposito. Replaneja daqui com o
@@ -158,10 +171,11 @@ def executar_bot(
 
 def jogar_com_bot(
     player, size=8, seed=None, max_passos=None, visual: bool = False, buscar=dijkstra,
-    ao_planejar=None, ao_passo=None, estrategia=None,
+    ao_planejar=None, ao_passo=None, estrategia=None, ao_paradas=None, ao_recarga=None,
 ) -> ResultadoBot:
     """Cria o mapa e executa uma partida controlada pelo bot."""
     mapa = Grid(size=size, seed=seed)
     return executar_bot(mapa, player, max_passos=max_passos, visual=visual,
                         buscar=buscar, ao_planejar=ao_planejar, ao_passo=ao_passo,
-                        estrategia=estrategia)
+                        estrategia=estrategia, ao_paradas=ao_paradas,
+                        ao_recarga=ao_recarga)
