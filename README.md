@@ -28,22 +28,138 @@ A tese é que **parar tarde não é parar pouco**: a regra intuitiva de parar
 quando a energia fica baixa ou para demais ou desmaia no meio do caminho, e o
 guloso, que só para no centro mais distante que ainda alcança, é ótimo.
 
-O plano completo, em fases, está em [`docs/plano-trabalho-2.html`](docs/plano-trabalho-2.html).
+## Como executar
 
-## Estado
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python -m pytest                  # testes
+python -m webdemo                 # interface web (abre o navegador)
+```
 
-| Fase | Conteúdo | Estado |
-| --- | --- | --- |
-| 0 | Repositório a partir do Trabalho 1 | feito |
-| 1 | Energia e Centro Pokémon | feito |
-| 2 | Algoritmo do caminhoneiro | feito |
-| 3 | Testes e prova de otimalidade | a fazer |
-| 4 | Estratégias rivais e bot | a fazer |
-| 5 | Benchmark | a fazer |
-| 6 | Interface | a fazer |
-| 7 | Entrega | a fazer |
+A interface sobe em `http://127.0.0.1:<porta>/`. Use `--porta N` para escolher
+a porta e `--sem-navegador` para não abrir o navegador. A demo do Trabalho 1
+continua em `/t1`.
 
-## Modelagem (fase 1)
+### Terminal
+
+```bash
+python main.py --bot --size 8 --seed 4 --energia 64 --estrategia guloso
+```
+
+O jogo pergunta cinco coisas antes de começar (nome, gênero, natureza, inicial
+`P`, `C` ou `S` e o nome do Pokémon). `--energia` liga a regra de energia e
+`--estrategia` escolhe onde o bot para: `guloso`, `todo_centro`, `limiar_10`,
+`limiar_25`, `limiar_50` ou `otimo`. Sem `--energia`, o jogo é o do Trabalho 1.
+Com `--human` quem joga é você, e a tecla `R` recarrega em cima de um Centro.
+
+No mapa 8x8 de seed 4 com tanque 64, o resumo do bot sai assim:
+
+| Estratégia | Paradas | Energia desperdiçada | Resultado |
+| --- | --- | --- | --- |
+| `guloso` | 1 | 2 | quatro Pokémon capturados |
+| `todo_centro` | 4 | 192 | quatro Pokémon capturados |
+| `limiar_25` | 1 | 6 | desmaiou (`sem energia`) |
+
+### Benchmark
+
+```bash
+python -m bench                   # rotas, partidas, paradas e gráficos
+python -m bench --so paradas      # só o experimento de paradas
+python -m webdemo.snapshot        # regenera webdemo/dados/benchmark.json
+```
+
+Os CSVs e os gráficos ficam em `bench/out/`, que está versionado: rodar o
+benchmark **sobrescreve** os resultados commitados (use `--saida DIR` para
+gravar em outro lugar). A aba Benchmark da interface lê o snapshot JSON, que
+guarda o commit e a data em que foi gerado.
+
+## A interface
+
+Quatro telas, em módulos ES nativos e mapa em SVG, sem build e sem dependência
+nova. Nenhuma regra do jogo mora no navegador: custo, desmaio, recarga e
+viabilidade do tanque chegam prontos do servidor.
+
+**Jogo.** Você anda pelo mapa com `WASD` ou as setas. O medidor mostra a energia
+e o que foi gasto, cada célula vizinha mostra quanto custa entrar e o diário
+explica a conta (`-3 de grama`, `-9 = 1 de concreto + 8 de batalha`). Entrar
+num Centro não recarrega: é preciso apertar `R` em cima dele.
+
+![Tela Jogo](docs/imagens/t2-jogo.png)
+
+**Bot.** O bot joga a partida e narra cada decisão. Escolha a rota (DFS, BFS ou
+Dijkstra) e a estratégia de parada. A régua embaixo mostra o custo acumulado,
+as paradas e os Pokémon capturados.
+
+![Tela Bot](docs/imagens/t2-bot.png)
+
+**Comparar.** Seis raias com o mesmo mapa, a mesma semente e o mesmo tanque.
+Cada raia é o bot de verdade jogando uma estratégia, e não uma rota planejada:
+só muda a regra de parada. No mapa padrão (8x8, seed 4, tanque 64) o guloso e o
+ótimo chegam com 1 parada, o `todo_centro` chega com 4, e os três limiares
+desmaiam no custo 116.
+
+![Tela Comparar](docs/imagens/t2-comparar.png)
+
+**Benchmark.** Os resultados medidos, em três páginas (Trabalho 1, Trabalho 2
+e os dois juntos), com a origem de cada número no rodapé.
+
+![Tela Benchmark](docs/imagens/t2-benchmark.png)
+
+## Resultados
+
+O experimento roda as seis regras de parada sobre as rotas do Trabalho 1 (DFS,
+BFS e Dijkstra), no mesmo grid: mapas 8x8, 15x15 e 30x30, 30 seeds cada, vários
+destinos por mapa e alcance curto, médio e longo. São **7.109 simulações**,
+guardadas em `bench/out/paradas.csv`. Rotas sem recarga possível são descartadas
+e registradas em `bench/out/paradas_descartes.csv` (3.983 descartes), por isso
+só parte das seeds aparece nas simulações: 23 no 8x8, 18 no 15x15 e 21 no 30x30.
+
+Em 15x15 com alcance médio (as 46 rotas que têm solução):
+
+| Estratégia | Paradas (média) | Desmaios | Energia desperdiçada |
+| --- | --- | --- | --- |
+| **Guloso** | **1,70** | **0%** | 20,9 |
+| Ótimo (força bruta) | 1,70 | 0% | 22,5 |
+| Todo centro | 3,15 | 0% | 73,4 |
+| Limiar 50% | 1,41 | 30% | 15,3 |
+| Limiar 25% | 0,35 | 83% | 1,5 |
+| Limiar 10% | 0,17 | 83% | 0,2 |
+
+Os limiares parecem baratos porque **quem desmaia não conta** parada nenhuma: a
+média é de quem parou e seguiu. Somando os 9 cenários (3 tamanhos x 3 alcances)
+sobre a rota do Dijkstra, cada estratégia roda em 557 rotas com solução, e o
+limiar de 10% desmaia em 70% delas, o de 25% em 48% e o de 50% em 20%. O guloso,
+o ótimo e o `todo_centro` não desmaiam em nenhuma.
+
+- **Guloso contra ótimo:** em 1.179 pares (mesmo mapa, destino, alcance e
+  algoritmo), o guloso parou **exatamente** o mesmo número de vezes que a força
+  bruta, em todos. A comparação é feita par a par porque o ótimo é exponencial
+  (2^k) e só roda até 20 centros na rota: ele ficou sem resultado em 7 das 1.186
+  rotas, então as médias dos dois saem de conjuntos de rotas um pouco diferentes.
+- **Guloso contra `todo_centro`:** mesmas chegadas, bem menos paradas.
+- **Desperdício:** o guloso desperdiça menos energia que o ótimo (20,9 contra
+  22,5). Não é contradição: o ótimo só garante o número mínimo de paradas, e
+  entre as combinações com esse número a força bruta devolve a primeira que
+  encontra (`otimas[0]`), sem olhar o desperdício. A diferença entre as médias
+  também pode vir dessas 7 rotas que o ótimo não cobre.
+- **Rotas inviáveis:** em 15x15 com alcance médio, 67% das rotas não têm
+  solução (algum trecho entre centros passa do tanque) e ficam fora das médias.
+  A quantidade descartada de cada cenário está em `bench/out/paradas_descartes.csv`.
+
+### Limites
+
+- Em 25 das 36 combinações de mapa e tanque que medimos as estratégias empatam.
+  A tese só aparece onde o tanque aperta; o mapa padrão da interface (8x8,
+  seed 4, tanque 64) foi escolhido por mostrar exatamente isso.
+- A vitória **não é monótona** no tanque. No 8x8 de seed 3 a busca binária
+  acha 122, mas o tanque 46 já vence. Por isso a interface chama o número de
+  "mínimo verificado": é o menor que a busca achou, não uma garantia de que
+  nenhum menor funcione.
+- O ótimo por força bruta é exponencial no número de centros (2^k) e só é
+  rodado até 20 centros.
+
+## Modelagem
 
 - **Energia não é HP.** O HP cai em batalha aleatória e já muda o custo da
   grama. O caminhoneiro só é ótimo quando o consumo de cada trecho é conhecido
@@ -51,20 +167,21 @@ O plano completo, em fases, está em [`docs/plano-trabalho-2.html`](docs/plano-t
 - **Consumo é o peso do Trabalho 1.** Entrar numa célula gasta
   `custo_entrada(celula, estado)`, calculado com o estado de antes do passo,
   incluindo a penalidade de batalha. É o mesmo número que o Dijkstra usou para
-  planejar.
+  planejar. Cada `Movimento` guarda as duas parcelas (`custo_terreno` e
+  `custo_conteudo`), para a interface explicar a conta sem recalculá-la.
 - **Centro é prédio, não item.** Não some quando pisado e passar por ele não
   recarrega sozinho: recarregar é uma ação separada (`game.recarregar`), porque
   passar sem parar é justamente a escolha do guloso.
 - **Sem energia para o próximo passo, o treinador desmaia** onde está e a
-  partida acaba com o motivo `sem energia`.
+  partida acaba com o motivo `sem energia`, que conta como derrota.
 - **Os mapas do Trabalho 1 não mudaram.** Os centros são sorteados depois do
   mapa inteiro, só em células livres fora da água e da origem. Em 90 mapas
   (8, 15 e 30, 30 seeds cada) nenhuma célula mudou além das que viraram
-  centro, e nenhuma distância do Dijkstra mudou.
+  centro, e nenhuma distância do Dijkstra mudou. Os centros ocupam 8% do mapa.
 - **Energia `None` desliga a regra**, e o jogo, o bot e o benchmark do
   Trabalho 1 funcionam como antes.
 
-## O algoritmo (fase 2)
+## O algoritmo
 
 O caminhoneiro é uma função pura em `greedy/caminhoneiro.py`, separada do mapa e
 do jogo para poder ser testada com listas de números.
@@ -82,18 +199,51 @@ do jogo para poder ser testada com listas de números.
 - **`alcance` é o tamanho do tanque** e recarregar num centro enche de novo. É
   linear no tamanho da rota, porque os marcos já vêm ordenados por ela.
 
-A prova de que o guloso é ótimo (`greedy stays ahead`) e os testes de força
-bruta vêm na fase 3.
+### Por que o guloso é ótimo
 
-## Como executar
+Argumento *greedy stays ahead*. Sejam `g1 < g2 < ...` as paradas do guloso e
+`o1 < o2 < ...` as de qualquer solução viável, medidas pelo custo acumulado.
 
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python -m pytest                  # testes
-python -m webdemo                 # interface web do Trabalho 1
-python main.py --bot --size 15    # bot no terminal
-```
+1. `o1` está dentro do alcance a partir da origem, e `g1` é o centro mais
+   distante dentro desse alcance. Logo `g1 >= o1`.
+2. Se `gk >= ok`, então `o(k+1)` está dentro do alcance a partir de `ok`, e
+   portanto a partir de `gk`, que está mais à frente. O guloso escolhe o centro
+   mais distante alcançável a partir de `gk`, então `g(k+1) >= o(k+1)`.
+3. Se uma solução chega ao destino com `m` paradas, o destino está dentro do
+   alcance a partir de `om`, logo a partir de `gm >= om`. O guloso chega com no
+   máximo `m` paradas.
+
+Esse invariante, a `k`-ésima parada do guloso nunca fica atrás da `k`-ésima de
+nenhuma solução ótima, é conferido nos testes contra a força bruta
+(`tests/test_caminhoneiro_otimalidade.py`, 400 rotas sorteadas, até 15 centros).
+A força bruta (`greedy/forca_bruta.py`) testa todos os subconjuntos de centros e
+não assume nada sobre a estrutura do problema, então concordar com ela é
+evidência independente.
+
+## Estrutura
+
+| Pasta | Conteúdo |
+| --- | --- |
+| `greedy/` | caminhoneiro, estratégias rivais, força bruta, simulação e viabilidade do tanque |
+| `graph/` | grafo, custos e busca do Trabalho 1 |
+| `bot/` | o bot que planeja e executa a rota, com ganchos para a interface |
+| `bench/` | benchmark do Trabalho 1 e o experimento de paradas; saída em `bench/out/` |
+| `webdemo/` | servidor, API (`/api/t2/*`), snapshot do benchmark e a interface em `static/` |
+| `tests/` | 3.368 testes |
+| `docs/` | plano, contrato de leitura do benchmark e os documentos do Trabalho 1 |
+
+## Divisão do trabalho
+
+| Fase | Conteúdo | Quem |
+| --- | --- | --- |
+| 0 a 2 | Repositório, energia e Centro Pokémon, algoritmo do caminhoneiro | Lucas |
+| 3 | Testes e prova de otimalidade (força bruta e invariante) | Augusto |
+| 4 | Estratégias rivais e bot com estratégia | Augusto |
+| 5 | Experimento de paradas e gráficos | Augusto |
+| 6 | Interface | Lucas |
+| 7 | README, relatório e vídeo | a definir |
+
+O plano completo, em fases, está em [`docs/plano-trabalho-2.html`](docs/plano-trabalho-2.html).
 
 ## Trabalho 1
 
