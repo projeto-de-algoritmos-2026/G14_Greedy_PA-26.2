@@ -86,3 +86,69 @@ class TestEscolhaDeInicial:
     def test_nunca_devolve_none(self, monkeypatch):
         responde(monkeypatch, "9", "", "S", "Jato")
         assert ui.choose_starter_pokemon("9") is not None
+
+
+class TestRecargaDoHumano:
+    """A recarga do humano passa por game.recarregar, a mesma acao do bot."""
+
+    @pytest.fixture
+    def cansado(self, andarilho):
+        andarilho.energia_max = 5
+        andarilho.energia = 2
+        return andarilho
+
+    def test_r_no_centro_enche_o_tanque_e_pede_direcao_de_novo(self, mapa, cansado, monkeypatch):
+        mapa.celula(0, 0).occupied_with = grid.CENTRO
+        responde(monkeypatch, "R", "D")
+        movimento = ui.passo_do_jogador(mapa, cansado)
+        # Recarregar nao e passo: o D seguinte e que anda, com tanque cheio.
+        assert movimento.posicao == (0, 1)
+        assert cansado.energia == 5 - movimento.energia_gasta
+
+    def test_r_fora_do_centro_nao_muda_nada(self, mapa, cansado, monkeypatch, capsys):
+        responde(monkeypatch, "r", "D")
+        ui.passo_do_jogador(mapa, cansado)
+        assert "Nothing to recharge" in capsys.readouterr().out
+        assert cansado.energia == 1
+
+    def test_sem_energia_ligada_r_e_direcao_invalida(self, mapa, andarilho, monkeypatch):
+        mapa.celula(0, 0).occupied_with = grid.CENTRO
+        responde(monkeypatch, "R", "D")
+        assert ui.passo_do_jogador(mapa, andarilho).posicao == (0, 1)
+
+    def test_prompt_mostra_a_energia(self, mapa, cansado, monkeypatch):
+        prompts = []
+        fila = ["D"]
+        monkeypatch.setattr("builtins.input", lambda p: prompts.append(p) or fila.pop(0))
+        ui.passo_do_jogador(mapa, cansado)
+        assert "Energy 2/5" in prompts[0]
+
+    def test_avisa_ao_entrar_no_centro(self, mapa, cansado, monkeypatch, capsys):
+        mapa.celula(0, 1).occupied_with = grid.CENTRO
+        responde(monkeypatch, "D")
+        ui.passo_do_jogador(mapa, cansado)
+        assert "Pokemon Center" in capsys.readouterr().out
+
+    def test_desmaio_devolve_o_movimento_em_vez_de_insistir(self, mapa, cansado, monkeypatch):
+        cansado.energia = 0
+        responde(monkeypatch, "D")
+        movimento = ui.passo_do_jogador(mapa, cansado)
+        assert movimento.desmaiou
+        assert cansado.desmaiado
+
+    def test_partida_humana_acaba_no_desmaio(self, cansado, monkeypatch, capsys):
+        cansado.energia = 0
+        monkeypatch.setattr(ui, "Grid", lambda size, seed: _mapa_livre())
+        responde(monkeypatch, "D")
+        ui.playing_game(cansado)
+        assert "fainted on the way" in capsys.readouterr().out
+
+
+def _mapa_livre():
+    g = grid.Grid(size=8, seed=1)
+    for linha in g.grid:
+        for celula in linha:
+            celula.occupied_with = grid.LIVRE
+            celula.terrain = grid.CONCRETO
+    g.row_pos, g.col_pos = 0, 0
+    return g

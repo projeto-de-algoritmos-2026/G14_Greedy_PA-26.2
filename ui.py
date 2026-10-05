@@ -8,12 +8,13 @@ import random
 
 from rich import print
 
-from game import DIRECOES, mover
+from game import DIRECOES, mover, partida_encerrada, recarregar
 from grid import Grid
 from models import Player, Pokemon
 
 PROMPT_DIRECAO = "Do you want to go W (up), A (left), S (down), or D (right)? "
 PROMPT_ERRO = "You cannot move there. Try again, Enter W/A/S/D to move in a different direction: "
+TECLA_RECARGA = "R"
 
 
 def passo_do_jogador(grid, player):
@@ -22,19 +23,44 @@ def passo_do_jogador(grid, player):
     No original, a resposta dada ao prompt de erro era descartada: o laco
     voltava ao prompt do topo e sobrescrevia a direcao antes de usa-la. Aqui a
     resposta ao prompt de erro e a proxima tentativa de verdade.
+
+    Com energia ligada, R recarrega com game.recarregar, a mesma acao que o
+    bot usa. Recarregar nao e passo: o jogador continua no mesmo lugar e o
+    prompt volta. Desmaiar devolve o Movimento invalido, porque nenhuma
+    direcao vai valer depois disso.
     """
     grid.print_grid()
-    prompt = PROMPT_DIRECAO
+    prompt = _prompt_direcao(player)
     while True:
         direcao = input(prompt)
+        if player.usa_energia and direcao.strip().upper() == TECLA_RECARGA:
+            entrou = recarregar(grid, player)
+            if entrou:
+                print(f"You rested at the Pokemon Center: +{entrou} energy.", "[green]")
+            else:
+                print("Nothing to recharge here.")
+            prompt = _prompt_direcao(player)
+            continue
         movimento = mover(grid, player, direcao)
+        if movimento.desmaiou:
+            print("You ran out of energy and fainted!", "[red]")
+            return movimento
         if movimento.valido:
             if movimento.pegou_pokebola:
                 print("Sweet, you found a pokeball!!", "[red]")
             if movimento.pegou_surf:
                 print("You learned Surf! You can cross water now.", "[cyan]")
+            if movimento.em_centro and player.usa_energia:
+                print(f"You are at a Pokemon Center. Enter {TECLA_RECARGA} to recharge.", "[green]")
             return movimento
         prompt = PROMPT_ERRO
+
+
+def _prompt_direcao(player):
+    if not player.usa_energia:
+        return PROMPT_DIRECAO
+    return (f"Energy {player.energia}/{player.energia_max}. Do you want to go W (up), "
+            f"A (left), S (down), D (right), or {TECLA_RECARGA} to recharge? ")
 
 
 def starting_player_info():
@@ -62,9 +88,11 @@ def choose_starter_pokemon(starter_pokemon):
 
 def playing_game(player, size=8, seed=None):
     grid = Grid(size=size, seed=seed)
-    while 0 < len(player.pokemon_list) < 4:
+    while not partida_encerrada(player):
         passo_do_jogador(grid, player)
     if len(player.pokemon_list) >= 4:
         print(f"Game over! You captured 4 pokemon {player.poke_list_names()}. Thanks for playing!", ":smile:")
+    elif player.desmaiado:
+        print("Game over! You fainted on the way. Thanks for playing!", ":smile:")
     else:
         print("Game over! You lost all of your pokemon. Thanks for playing!", ":smile:")

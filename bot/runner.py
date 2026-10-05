@@ -6,6 +6,7 @@ import game
 from grid import Grid
 from graph.search import dijkstra
 from graph.state import Estado
+from greedy import marcos_da_rota
 
 from .movement import executar_caminho
 from .objectives import planejar_visita
@@ -24,6 +25,10 @@ class ResultadoBot:
     # resultado final da partida, nao o custo de cada replanejamento.
     custo_planejado: float = 0.0
     nos_expandidos: int = 0
+    # Trabalho 2. Ficam zerados quando a partida nao usa estrategia de parada.
+    paradas: int = 0
+    # Soma do que ainda havia no tanque a cada recarga.
+    energia_desperdicada: int = 0
 
 
 def executar_bot(
@@ -35,6 +40,7 @@ def executar_bot(
     buscar=dijkstra,
     ao_planejar=None,
     ao_passo=None,
+    estrategia=None,
 ) -> ResultadoBot:
     """Planeja, executa um objetivo e replaneja ate a partida parar.
 
@@ -51,6 +57,12 @@ def executar_bot(
     sao ganchos de observacao, chamados enquanto a partida acontece. A interface
     web transmite o bot por eles, em vez de reproduzir um resultado pronto. Sem
     eles o comportamento e identico.
+
+    `estrategia` e uma das de greedy.estrategias. Com ela, e com o jogador
+    usando energia, cada rota planejada passa pelo caminhoneiro: o bot anda so
+    ate a primeira parada escolhida, recarrega com game.recarregar e replaneja
+    dali com o tanque cheio. Sem ela o bot anda a rota inteira, como no
+    trabalho 1.
     """
     resultado = ResultadoBot()
     passos = 0
@@ -90,11 +102,38 @@ def executar_bot(
             print(f"Caminho: {caminho}")
             mapa.print_grid()
 
+        parada = None
+        if estrategia is not None and player.usa_energia:
+            marcos = marcos_da_rota(caminho, mapa, estado)
+            escolhidas = estrategia(marcos, player.energia_max, player.energia)
+            if escolhidas is None:
+                # So guloso e otimo devolvem None, e so quando nem parar em
+                # todo centro chega. Sair andando seria desmaiar com certeza:
+                # a partida registra o motivo, como a origem ilhada do
+                # trabalho 1, e nao gasta passo nenhum.
+                resultado.motivo_parada = "rota sem recarga possivel"
+                if visual:
+                    print(f"Sem recarga possivel ate {destino}.")
+                break
+            if escolhidas:
+                parada = caminho[escolhidas[0]]
+                caminho = caminho[:escolhidas[0] + 1]
+
         movimentos = executar_caminho(
             mapa, player, caminho, automatico=True, visual=visual, ao_passo=ao_passo
         )
         resultado.movimentos.extend(movimentos)
         passos += len(movimentos)
+
+        if parada is not None and mapa.posicao == parada:
+            entrou = game.recarregar(mapa, player)
+            resultado.paradas += 1
+            resultado.energia_desperdicada += player.energia_max - entrou
+            if visual:
+                print(f"Recarregou em {parada}: +{entrou} de energia")
+            # A rota foi cortada na parada de proposito. Replaneja daqui com o
+            # tanque cheio, em vez de cair nas checagens de caminho cortado.
+            continue
 
         if mapa.posicao == destino:
             resultado.objetivos_visitados.append(destino)
@@ -119,9 +158,10 @@ def executar_bot(
 
 def jogar_com_bot(
     player, size=8, seed=None, max_passos=None, visual: bool = False, buscar=dijkstra,
-    ao_planejar=None, ao_passo=None,
+    ao_planejar=None, ao_passo=None, estrategia=None,
 ) -> ResultadoBot:
     """Cria o mapa e executa uma partida controlada pelo bot."""
     mapa = Grid(size=size, seed=seed)
     return executar_bot(mapa, player, max_passos=max_passos, visual=visual,
-                        buscar=buscar, ao_planejar=ao_planejar, ao_passo=ao_passo)
+                        buscar=buscar, ao_planejar=ao_planejar, ao_passo=ao_passo,
+                        estrategia=estrategia)
