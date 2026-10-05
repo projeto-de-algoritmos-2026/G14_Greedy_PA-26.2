@@ -1,6 +1,6 @@
-"""Benchmark comparativo (fase 6).
+"""Benchmark comparativo (fase 6 do trabalho 1, fase 5 do trabalho 2).
 
-Sao DOIS experimentos, e a separacao e o ponto principal do desenho:
+Os dois primeiros sao do trabalho 1, e a separacao e o ponto principal do desenho:
 
 - `bench.rotas`: rota pura. Mesma origem, mesmo destino, mesmo estado, tres
   algoritmos. E o experimento que sustenta a tese do trabalho, porque isola a
@@ -13,6 +13,13 @@ Sao DOIS experimentos, e a separacao e o ponto principal do desenho:
   durante a execucao (celula virou VISITADO, surf apareceu, HP caiu), entao os
   numeros nao sao comparaveis linha a linha com os do outro experimento.
 
-Grade dos dois: tamanhos 8, 15 e 30 x 30 seeds x 3 algoritmos. Saida em CSV em
-`bench/out/`, mais graficos SVG em `bench.charts`.
+- `bench.paradas` (trabalho 2): paradas de recarga. Sobre a rota de cada
+  algoritmo, cada estrategia de greedy.estrategias escolhe onde recarregar e
+  greedy.simulacao conta paradas, desmaios, energia desperdicada e gasta. E o
+  experimento da tese "parar tarde nao e parar pouco", e o cruzamento com os
+  tres algoritmos liga os dois trabalhos.
+
+Grade: tamanhos 8, 15 e 30 x 30 seeds x 3 algoritmos (e, nas paradas, 3
+tanques x 6 estrategias). Saida em CSV em `bench/out/`, mais graficos SVG em
+`bench.charts`.
 """
