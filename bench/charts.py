@@ -20,6 +20,12 @@ CORES = {
     "dfs": "#d1495b",
     "bfs": "#2a9d8f",
     "dijkstra": "#3d5a80",
+    # Estrategias de parada do trabalho 2.
+    "guloso": "#0b8577",
+    "todo_centro": "#6c757d",
+    "limiar_10": "#c0392b",
+    "limiar_25": "#e08e0b",
+    "limiar_50": "#7b5ea7",
 }
 COR_PADRAO = "#6c757d"
 
@@ -117,13 +123,17 @@ def grafico_linhas(titulo, rotulo_x, rotulo_y, series, caminho: Path) -> Path:
     return caminho
 
 
-def series_por_algoritmo(linhas, coluna, filtro=None):
-    """{algoritmo: [(tamanho, valor)]} a partir de um CSV de resumo."""
+def series_por_algoritmo(linhas, coluna, filtro=None, serie="algoritmo"):
+    """{serie: [(tamanho, valor)]} a partir de um CSV de resumo.
+
+    `serie` e a coluna que separa as linhas do grafico: o algoritmo nos
+    experimentos do trabalho 1, a estrategia de parada no do trabalho 2.
+    """
     series: dict[str, list] = {}
     for linha in linhas:
         if filtro and any(linha[chave] != valor for chave, valor in filtro.items()):
             continue
-        series.setdefault(linha["algoritmo"], []).append(
+        series.setdefault(linha[serie], []).append(
             (int(linha["tamanho"]), float(linha[coluna]))
         )
     return series
@@ -139,6 +149,24 @@ GRAFICOS_PARTIDAS = [
     ("batalhas_medio", "Batalhas forcadas por partida", "batalhas", "partidas-batalhas.svg"),
     ("hp_perdido_medio", "HP perdido por partida", "HP perdido", "partidas-hp.svg"),
     ("objetivos_medio", "Objetivos concluidos por partida", "objetivos", "partidas-objetivos.svg"),
+]
+
+# (coluna, titulo, rotulo, arquivo, filtro, serie). Todos no tanque medio. O
+# otimo fica fora dos graficos de estrategia: tem as mesmas paradas do guloso
+# (e o que a fase 3 prova) e a linha dele so esconderia a do guloso.
+FILTRO_ESTRATEGIAS = {"alcance": "medio", "algoritmo": "dijkstra"}
+FILTRO_ALGORITMOS = {"alcance": "medio", "estrategia": "guloso"}
+GRAFICOS_PARADAS = [
+    ("paradas_medio", "Paradas por estrategia na rota do Dijkstra", "paradas",
+     "paradas-estrategias.svg", FILTRO_ESTRATEGIAS, "estrategia"),
+    ("taxa_desmaio", "Desmaios por estrategia na rota do Dijkstra", "fracao que desmaia",
+     "paradas-desmaios.svg", FILTRO_ESTRATEGIAS, "estrategia"),
+    ("energia_desperdicada_medio", "Energia desperdicada por estrategia", "energia no tanque ao recarregar",
+     "paradas-desperdicio.svg", FILTRO_ESTRATEGIAS, "estrategia"),
+    ("paradas_medio", "Paradas do guloso por algoritmo de rota", "paradas",
+     "paradas-algoritmos.svg", FILTRO_ALGORITMOS, "algoritmo"),
+    ("taxa_inviavel", "Rotas sem recarga possivel por algoritmo", "fracao inviavel",
+     "paradas-inviaveis.svg", FILTRO_ALGORITMOS, "algoritmo"),
 ]
 
 
@@ -163,6 +191,18 @@ def gerar(saida: Path = SAIDA_PADRAO, estado="hp100") -> list[Path]:
             if series:
                 gerados.append(grafico_linhas(
                     titulo, "tamanho do mapa", rotulo, series, saida / arquivo
+                ))
+
+    resumo_paradas = saida / "paradas_resumo.csv"
+    if resumo_paradas.exists():
+        linhas = ler_csv(resumo_paradas)
+        for coluna, titulo, rotulo, arquivo, filtro, serie in GRAFICOS_PARADAS:
+            series = series_por_algoritmo(linhas, coluna, filtro=filtro, serie=serie)
+            series.pop("otimo", None)
+            if series:
+                gerados.append(grafico_linhas(
+                    f"{titulo} (tanque medio)", "tamanho do mapa", rotulo, series,
+                    saida / arquivo,
                 ))
     return gerados
 

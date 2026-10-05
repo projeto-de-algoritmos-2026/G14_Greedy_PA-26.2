@@ -1,0 +1,10 @@
+tamanho,alcance,destinos_comparados,dijkstra_menos_paradas,empates,dijkstra_mais_paradas
+8,longo,57,1,56,0
+8,medio,19,1,18,0
+8,curto,5,0,5,0
+15,curto,6,0,6,0
+15,medio,13,1,12,0
+15,longo,43,6,37,0
+30,longo,66,13,53,0
+30,medio,21,5,16,0
+30,curto,6,1,5,0
