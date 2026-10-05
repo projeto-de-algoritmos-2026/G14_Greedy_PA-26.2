@@ -37,9 +37,11 @@ AGUA = 'water'
 CONCRETO = 'concrete'
 TERRENOS = [GRAMA, AGUA, CONCRETO]
 
-# Fracao das celulas que vira Centro Pokemon. Com 8x8 da 2 ou 3 centros, com
-# 30x30 da 36. O trabalho 2 calibra isso junto com o alcance da energia.
-DENSIDADE_CENTRO = 0.04
+# Fracao das celulas que vira Centro Pokemon. Com 8x8 da 5 centros, com 30x30
+# da 72. Calibrada no benchmark da fase 5: com 4% a maioria das rotas do 8x8 e
+# do 15x15 nao passava por centro nenhum, e sem centro na rota toda estrategia
+# de parada empata.
+DENSIDADE_CENTRO = 0.08
 
 
 class GridSquare:
