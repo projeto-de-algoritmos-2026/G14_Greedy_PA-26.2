@@ -226,7 +226,9 @@ def _situacao(player):
     motivo = game.partida_encerrada(player)
     if not motivo:
         return "jogando", ""
-    return ("derrota" if motivo == "sem pokemon" else "vitoria"), motivo
+    # "sem energia" entrou no trabalho 2 e tambem e derrota: o treinador caiu no
+    # caminho. Sem esta linha a tela anunciava vitoria pra quem desmaiou.
+    return ("derrota" if motivo in ("sem pokemon", "sem energia") else "vitoria"), motivo
 
 
 def _resumo_jogador(player):

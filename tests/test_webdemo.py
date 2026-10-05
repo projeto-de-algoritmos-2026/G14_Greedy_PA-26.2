@@ -252,3 +252,27 @@ def test_partida_da_tela_e_reproduzivel_e_bate_com_o_benchmark():
         do_benchmark["batalhas"], do_benchmark["hp_perdido"],
         do_benchmark["motivo_parada"],
     )
+
+
+def test_desmaio_por_falta_de_energia_e_derrota_e_nao_vitoria():
+    """Trabalho 2: "sem energia" encerra a partida, e encerrar nao e ganhar.
+    A tela anunciava vitoria pra quem caiu no meio do caminho porque so
+    "sem pokemon" era tratado como derrota."""
+    from models import Player, Pokemon
+
+    jogador = Player("Lucas", "Male", "Fun",
+                     [Pokemon("Faisca", "Male", "Pikachu", "Electric", {"Shock": 40})],
+                     {"pokeball": 0}, 0, energia=5, energia_max=5)
+    jogador.desmaiado = True
+
+    assert api._situacao(jogador) == ("derrota", "sem energia")
+    assert api._resumo_jogador(jogador)["situacao"] == "derrota"
+
+
+def test_partida_ganha_continua_sendo_vitoria():
+    from models import Player
+
+    jogador = Player("Lucas", "Male", "Fun", [], {"pokeball": 0}, 0)
+    jogador.pokemon_list = [object()] * 4
+
+    assert api._situacao(jogador) == ("vitoria", "quatro pokemon capturados")
