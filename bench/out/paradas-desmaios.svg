@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420" font-family="system-ui, sans-serif">
+<rect width="720" height="420" fill="#ffffff"/>
+<text x="78" y="30" font-size="17" font-weight="600" fill="#1d2733">Desmaios por estrategia na rota do Dijkstra (tanque medio)</text>
+<line x1="78" y1="358.0" x2="570" y2="358.0" stroke="#e4e8ee" stroke-width="1"/>
+<text x="68" y="362.0" font-size="11" text-anchor="end" fill="#66707c">0</text>
+<line x1="78" y1="280.5" x2="570" y2="280.5" stroke="#e4e8ee" stroke-width="1"/>
+<text x="68" y="284.5" font-size="11" text-anchor="end" fill="#66707c">0.23</text>
+<line x1="78" y1="206.4" x2="570" y2="206.4" stroke="#e4e8ee" stroke-width="1"/>
+<text x="68" y="210.4" font-size="11" text-anchor="end" fill="#66707c">0.45</text>
+<line x1="78" y1="129.0" x2="570" y2="129.0" stroke="#e4e8ee" stroke-width="1"/>
+<text x="68" y="133.0" font-size="11" text-anchor="end" fill="#66707c">0.68</text>
+<line x1="78" y1="51.5" x2="570" y2="51.5" stroke="#e4e8ee" stroke-width="1"/>
+<text x="68" y="55.5" font-size="11" text-anchor="end" fill="#66707c">0.91</text>
+<line x1="78" y1="358" x2="570" y2="358" stroke="#96a0ac" stroke-width="1"/>
+<text x="78.0" y="380" font-size="12" text-anchor="middle" fill="#414b57">8</text>
+<text x="234.5" y="380" font-size="12" text-anchor="middle" fill="#414b57">15</text>
+<text x="570.0" y="380" font-size="12" text-anchor="middle" fill="#414b57">30</text>
+<text x="324" y="404" font-size="12" text-anchor="middle" fill="#66707c">tamanho do mapa</text>
+<text x="18" y="205" font-size="12" fill="#66707c" text-anchor="middle" transform="rotate(-90 18 205)">fracao que desmaia</text>
+<polyline points="78.0,358.0 234.5,358.0 570.0,358.0" fill="none" stroke="#0b8577" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="78.0" cy="358.0" r="4" fill="#0b8577"/>
+<circle cx="234.5" cy="358.0" r="4" fill="#0b8577"/>
+<circle cx="570.0" cy="358.0" r="4" fill="#0b8577"/>
+<rect x="592" y="50" width="12" height="12" rx="3" fill="#0b8577"/>
+<text x="610" y="60" font-size="12" fill="#1d2733">guloso</text>
+<polyline points="78.0,358.0 234.5,358.0 570.0,358.0" fill="none" stroke="#6c757d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="78.0" cy="358.0" r="4" fill="#6c757d"/>
+<circle cx="234.5" cy="358.0" r="4" fill="#6c757d"/>
+<circle cx="570.0" cy="358.0" r="4" fill="#6c757d"/>
+<rect x="592" y="72" width="12" height="12" rx="3" fill="#6c757d"/>
+<text x="610" y="82" font-size="12" fill="#1d2733">todo_centro</text>
+<polyline points="78.0,173.4 234.5,79.8 570.0,103.1" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="78.0" cy="173.4" r="4" fill="#c0392b"/>
+<circle cx="234.5" cy="79.8" r="4" fill="#c0392b"/>
+<circle cx="570.0" cy="103.1" r="4" fill="#c0392b"/>
+<rect x="592" y="94" width="12" height="12" rx="3" fill="#c0392b"/>
+<text x="610" y="104" font-size="12" fill="#1d2733">limiar_10</text>
+<polyline points="78.0,205.8 234.5,79.8 570.0,151.9" fill="none" stroke="#e08e0b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="78.0" cy="205.8" r="4" fill="#e08e0b"/>
+<circle cx="234.5" cy="79.8" r="4" fill="#e08e0b"/>
+<circle cx="570.0" cy="151.9" r="4" fill="#e08e0b"/>
+<rect x="592" y="116" width="12" height="12" rx="3" fill="#e08e0b"/>
+<text x="610" y="126" font-size="12" fill="#1d2733">limiar_25</text>
+<polyline points="78.0,292.7 234.5,255.6 570.0,256.6" fill="none" stroke="#7b5ea7" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="78.0" cy="292.7" r="4" fill="#7b5ea7"/>
+<circle cx="234.5" cy="255.6" r="4" fill="#7b5ea7"/>
+<circle cx="570.0" cy="256.6" r="4" fill="#7b5ea7"/>
+<rect x="592" y="138" width="12" height="12" rx="3" fill="#7b5ea7"/>
+<text x="610" y="148" font-size="12" fill="#1d2733">limiar_50</text>
+</svg>
