@@ -134,7 +134,7 @@ input[type=range]{width:100%;accent-color:var(--jade)}
 .cmp-ctl .field{margin:0;min-width:150px}
 
 /* comparar: as cinco raias dividem a altura disponível */
-.lanes{flex:1;min-height:0;width:100%;max-width:1200px;margin:0 auto;display:grid;grid-template-rows:repeat(6,minmax(0,1fr));gap:8px}
+.lanes{flex:1;min-height:0;width:100%;max-width:1200px;margin:0 auto;display:grid;grid-template-rows:repeat(6,minmax(min-content,1fr));gap:8px;overflow-y:auto}
 .lane{min-height:0;overflow:hidden;display:grid;grid-template-columns:clamp(150px,18vw,230px) minmax(0,1fr) clamp(150px,15vw,196px);gap:16px;align-items:center;padding:clamp(4px,1vh,12px) 16px;border:1px solid var(--border);border-radius:14px;background:var(--surface);transition:border-color .3s,box-shadow .3s}
 .lane.win{border-color:var(--jade);box-shadow:0 0 0 1px var(--jade) inset,0 0 36px rgba(18,183,163,.14)}
 .lane .nome{font-weight:700;font-size:15px;letter-spacing:-.01em}
