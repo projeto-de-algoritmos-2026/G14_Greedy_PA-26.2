@@ -9,7 +9,9 @@ Projeto de Algoritmos (FGA0124) | Grupo 14 | Módulo 2: Algoritmos Ambiciosos (G
 
 ## Apresentação
 
-Vídeo de apresentação: a publicar.
+Vídeo de apresentação: [GP 14 - PA - greedy - 2026-2](https://youtu.be/-URT1e8Rkzg)
+
+Relatório final: [`docs/relatorio-trabalho-2.md`](docs/relatorio-trabalho-2.md).
 
 ## Sobre
 
@@ -26,7 +28,10 @@ energia total da rota, e o guloso minimiza o número de paradas sobre ela.
 
 A tese é que **parar tarde não é parar pouco**: a regra intuitiva de parar
 quando a energia fica baixa ou para demais ou desmaia no meio do caminho, e o
-guloso, que só para no centro mais distante que ainda alcança, é ótimo.
+guloso, que só para no centro mais distante que ainda alcança, é ótimo no
+número de paradas sobre uma rota fixa. Isso é provado abaixo e medido em
+7.109 simulações; o que acontece no jogo com batalha aleatória, onde o HP
+muda o custo no meio do caminho, está em [Jogo real](#jogo-real-com-batalha-aleatória).
 
 ## Como executar
 
@@ -53,7 +58,10 @@ O jogo pergunta cinco coisas antes de começar (nome, gênero, natureza, inicial
 `limiar_25`, `limiar_50` ou `otimo`. Sem `--energia`, o jogo é o do Trabalho 1.
 Com `--human` quem joga é você, e a tecla `R` recarrega em cima de um Centro.
 
-No mapa 8x8 de seed 4 com tanque 64, o resumo do bot sai assim:
+**O terminal não é reprodutível:** o `main.py` semeia o mapa com `--seed`, mas não o
+sorteio das batalhas, então o mesmo comando dá resultados diferentes a cada
+execução (a interface web trava o sorteio por partida e sempre repete). Um
+exemplo de uma execução no mapa 8x8 de seed 4 com tanque 64:
 
 | Estratégia | Paradas | Energia desperdiçada | Resultado |
 | --- | --- | --- | --- |
@@ -61,12 +69,16 @@ No mapa 8x8 de seed 4 com tanque 64, o resumo do bot sai assim:
 | `todo_centro` | 4 | 192 | quatro Pokémon capturados |
 | `limiar_25` | 1 | 6 | desmaiou (`sem energia`) |
 
+Em outras execuções o guloso terminou em `rota sem recarga possível` e o
+`limiar_25` chegou. Para um resultado fixo, use a aba Comparar da interface.
+
 ### Benchmark
 
 ```bash
 python -m bench                   # rotas, partidas, paradas e gráficos
 python -m bench --so paradas      # só o experimento de paradas
 python -m webdemo.snapshot        # regenera webdemo/dados/benchmark.json
+python -m bench.jogo_real         # estratégias no jogo real, com batalha (~75 s)
 ```
 
 Os CSVs e os gráficos ficam em `bench/out/`, que está versionado: rodar o
@@ -126,7 +138,8 @@ Em 15x15 com alcance médio (as 46 rotas que têm solução):
 | Limiar 25% | 0,35 | 83% | 1,5 |
 | Limiar 10% | 0,17 | 83% | 0,2 |
 
-Os limiares parecem baratos porque **quem desmaia não conta** parada nenhuma: a
+Estes números são do **modelo de custos fixos**: a simulação anda sobre os custos
+planejados da rota, sem batalha no meio. Os limiares parecem baratos porque **quem desmaia não conta** parada nenhuma: a
 média é de quem parou e seguiu. Somando os 9 cenários (3 tamanhos x 3 alcances)
 sobre a rota do Dijkstra, cada estratégia roda em 557 rotas com solução, e o
 limiar de 10% desmaia em 70% delas, o de 25% em 48% e o de 50% em 20%. O guloso,
@@ -147,7 +160,32 @@ o ótimo e o `todo_centro` não desmaiam em nenhuma.
   solução (algum trecho entre centros passa do tanque) e ficam fora das médias.
   A quantidade descartada de cada cenário está em `bench/out/paradas_descartes.csv`.
 
+### Jogo real (com batalha aleatória)
+
+No jogo, a batalha tira HP e o HP encarece a grama, então o custo real de um
+trecho pode passar do planejado. `python -m bench.jogo_real` roda o bot de
+verdade em 15 mapas que ele vence (8x8 e 15x15), com o tanque em 1,5 vez o
+mínimo verificado de cada mapa e 20 sorteios de batalha por mapa e estratégia
+(300 partidas cada; o mapa é o mesmo, só as batalhas mudam):
+
+| Estratégia | Chega | Desmaia (`sem energia`) | Bot não sai (`rota sem recarga possível`) | Sem Pokémon |
+| --- | --- | --- | --- | --- |
+| Guloso | 230 (77%) | 0 | 43 | 27 |
+| Todo centro | 257 (86%) | 19 | 0 | 24 |
+| Limiar 50% | 254 (85%) | 19 | 0 | 27 |
+| Limiar 25% | 231 (77%) | 42 | 0 | 27 |
+| Limiar 10% | 227 (76%) | 46 | 0 | 27 |
+
+O guloso não desmaiou em nenhuma das 300 partidas, mas em 14% delas o plano não
+achou recarga viável e o bot parou antes de andar, por isso chega menos que o
+`todo_centro`. **Vale "o guloso nunca desmaia", não vale "o guloso sempre
+chega".** A causa provável é o HP ter caído e encarecido a grama acima do tanque
+restante, mas não foi isolada. No mapa padrão da interface (8x8, seed 4, tanque
+64), só 4 de 40 sorteios de batalha terminam em vitória, para qualquer uma das
+seis estratégias: o caso que mostra a tese é um sorteio favorável.
+
 ### Limites
+
 
 - Em 25 das 36 combinações de mapa e tanque que medimos as estratégias empatam.
   A tese só aparece onde o tanque aperta; o mapa padrão da interface (8x8,
@@ -229,8 +267,8 @@ evidência independente.
 | `bot/` | o bot que planeja e executa a rota, com ganchos para a interface |
 | `bench/` | benchmark do Trabalho 1 e o experimento de paradas; saída em `bench/out/` |
 | `webdemo/` | servidor, API (`/api/t2/*`), snapshot do benchmark e a interface em `static/` |
-| `tests/` | 3.368 testes |
-| `docs/` | plano, contrato de leitura do benchmark e os documentos do Trabalho 1 |
+| `tests/` | 3.376 testes |
+| `docs/` | relatório, plano, contrato de leitura do benchmark e os documentos do Trabalho 1 |
 
 ## Divisão do trabalho
 
