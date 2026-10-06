@@ -118,8 +118,21 @@ class TestEscrita:
     def test_escreve_json_valido_com_data_e_commit(self, tmp_path):
         caminho, _ = snapshot.escrever(tmp_path / "x" / "benchmark.json")
         lido = json.loads(caminho.read_text(encoding="utf-8"))
-        assert lido["gerado_em"].endswith("Z") and lido["commit"]
+        assert lido["gerado_em"].endswith("Z")
+        # O commit vem do git: e uma string num clone e None num ZIP baixado sem
+        # .git. As duas coisas sao validas, a tela mostra "?" no segundo caso.
+        assert lido["commit"] is None or (isinstance(lido["commit"], str) and lido["commit"])
         assert lido["t2"]["linhas"] and lido["t1"]["rota"]
+
+    def test_sem_git_o_commit_e_none_e_nada_quebra(self, monkeypatch, tmp_path):
+        """O cenario de quem baixa o ZIP do GitHub: nao ha .git e o snapshot ainda sai."""
+        def sem_git(*args, **kwargs):
+            raise FileNotFoundError("git")
+        monkeypatch.setattr(snapshot.subprocess, "run", sem_git)
+        caminho, _ = snapshot.escrever(tmp_path / "benchmark.json")
+        lido = json.loads(caminho.read_text(encoding="utf-8"))
+        assert lido["commit"] is None
+        assert lido["t2"]["linhas"]
 
     def test_o_arquivo_versionado_bate_com_os_csvs_de_agora(self, dados):
         """O JSON commitado nao pode envelhecer em silencio: se os CSVs mudarem,
