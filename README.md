@@ -1,4 +1,8 @@
+**Vídeo de apresentação:** [GP 14 - PA - greedy - 2026-2](https://youtu.be/-URT1e8Rkzg)
+
 # Pokémon CLI: o Caminhoneiro
+
+Relatório final: [`docs/relatorio-trabalho-2.md`](docs/relatorio-trabalho-2.md)
 
 Projeto de Algoritmos (FGA0124) | Grupo 14 | Módulo 2: Algoritmos Ambiciosos (Greedy)
 
@@ -6,12 +10,6 @@ Projeto de Algoritmos (FGA0124) | Grupo 14 | Módulo 2: Algoritmos Ambiciosos (G
 | --- | --- |
 | 190091681 | Lucas Gabriel Antunes |
 | 202045965 | Augusto Campos Duarte |
-
-## Apresentação
-
-Vídeo de apresentação: [GP 14 - PA - greedy - 2026-2](https://youtu.be/-URT1e8Rkzg)
-
-Relatório final: [`docs/relatorio-trabalho-2.md`](docs/relatorio-trabalho-2.md).
 
 ## Sobre
 
